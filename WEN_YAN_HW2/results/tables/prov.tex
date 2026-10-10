@@ -1,0 +1,25 @@
+\begin{table}[t]
+\centering
+\scriptsize
+\begin{tabular}{p{0.30\linewidth}p{0.62\linewidth}}
+\toprule
+Artifact & Produced from \\
+\midrule
+\texttt{results/figures/ppo\_curve.png} & \texttt{runs/teacher/ppo\_progress.json} \\
+\texttt{results/figures/demos.png} & \texttt{data/demos\_sigma0.npz} \\
+\texttt{results/figures/demo\_frames.png} & \texttt{videos/expert\_demo*\_frames.npz} \\
+\texttt{results/figures/loss.png} & \texttt{runs/conditions/*/train\_log.json} \\
+\texttt{results/figures/quantity.png} & \texttt{results/conditions/*.json} \\
+\texttt{results/figures/noise.png} & \texttt{results/conditions/*.json} \\
+\texttt{results/figures/algorithms.png} & \texttt{results/conditions/*.json} \\
+\texttt{results/figures/failure.png} & \texttt{results/failure\_analysis.json} \\
+\texttt{results/tables/main.tex} & \texttt{results/conditions/*.json} \\
+\texttt{results/tables/data.tex} & \texttt{runs/teacher/stage1\_report.json} \\
+\texttt{results/tables/paired.tex} & \texttt{results/paired\_comparisons.json} \\
+\texttt{results/tables/modes.tex} & \texttt{results/conditions/*.json} \\
+\texttt{results/summary.csv} & \texttt{results/conditions/*.json} \\
+\bottomrule
+\end{tabular}
+\caption{Provenance of every figure and table in this report.}
+\label{tab:prov}
+\end{table}

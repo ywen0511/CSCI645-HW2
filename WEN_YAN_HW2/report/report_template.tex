@@ -1,0 +1,482 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+\usepackage{xcolor}
+\setlength{\parskip}{0.35em}
+\renewcommand{\arraystretch}{1.12}
+\input{numbers.tex}
+
+\title{\textbf{CSCI 645 Homework 2}\\[2pt]
+Imitation Learning for Robot Manipulation:\\
+How Demonstration Quantity and Quality Affect ACT on \texttt{PandaPickCube}}
+\author{Yan Wen}
+\date{\today}
+
+\begin{document}
+\maketitle
+\vspace{-2.2em}
+
+\begin{center}
+\small
+\begin{tabular}{ll}
+\toprule
+Environment & \texttt{PandaPickCube} (MuJoCo Playground), state-based, \texttt{impl=jax} \\
+Teacher & PPO (Brax), \teacherSteps{} environment steps, \teacherNumEnvs{} parallel envs \\
+Student & ACT (action chunking transformer), chunk $H=\chunkSize$, \execMode{} inference \\
+Experiments & Option A (quantity: 25/50/100) and Option B (teacher action noise) \\
+Hardware & \gpuName{} on \hostName{} (single GPU per run) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section*{Summary of what was run}
+A PPO teacher was trained on \texttt{PandaPickCube}, evaluated on
+\nEvalPerSeed{} held-out initial conditions, and used to collect three
+demonstration pools (clean, and with Gaussian action noise
+$\sigma\!\in\!\{0.1,0.3\}$ injected \emph{during} environment interaction).
+ACT students were then trained on nested subsets of the clean pool
+(25/50/100 demonstrations) and on the two noisy pools, \nSeeds{} random seeds
+each, and every student was evaluated on the \emph{same} \nEvalPerSeed{}
+held-out initial conditions. A flow-matching policy was trained on the clean
+100-demonstration pool as an additional modern baseline. Table~\ref{tab:main}
+is the headline result; Table~\ref{tab:paired} gives paired statistics.
+
+\input{tables/main.tex}
+
+\section{Task and demonstration source}
+\textbf{Environment.} \texttt{PandaPickCube} from MuJoCo Playground: a Franka
+Emika Panda must bring a box to a target pose sampled uniformly in a
+$0.4\,\mathrm{m}\times0.4\,\mathrm{m}$ box in $x,y$ and $0.2$--$0.4\,\mathrm{m}$
+\emph{above} the table, so the task requires reaching, grasping and lifting.
+Observations are the \obsDim-dimensional state vector built by the
+environment's \texttt{\_get\_obs} (joint positions and velocities, gripper
+position and orientation, box orientation, box-relative and target-relative
+offsets, and control residuals). Actions are \actDim{}-dimensional joint-space
+deltas in $[-1,1]$, scaled by \texttt{action\_scale}$=0.04$ and added to the
+current control, which is then clipped to the actuator limits. Episodes are
+\epLen{} control steps at $\ctrlDt\,\mathrm{s}$ (3\,s of simulated time).
+
+\textbf{Defining success.} This is a necessary design decision rather than a
+detail: the environment exposes \emph{no} success signal. Its \texttt{done}
+flag fires only when the box leaves the workspace or the simulation produces
+NaNs, so episodes otherwise always run the full \epLen{} steps, and the only
+task-progress field in \texttt{state.info} is \texttt{reached\_box} (gripper
+within $12\,\mathrm{mm}$ of the box). We therefore define success
+geometrically:
+\begin{quote}
+an episode succeeds if the box comes within \successRadiusCm{}\,cm of the
+target and \emph{stays} there for \successHold{} consecutive control steps
+($\successHoldSec\,$s).
+\end{quote}
+The hold requirement is what stops a fast fly-through of the target region from
+counting as a pick-and-place. Because the reported numbers depend on this
+threshold, we also report success as a function of the radius so the reader can
+see how much of the result is threshold-sensitivity (Section~\ref{sec:fail}).
+
+\textbf{Teacher.} PPO from Brax, using the hyperparameters that MuJoCo
+Playground ships for this task (\texttt{manipulation\_params.brax\_ppo\_config}):
+\teacherNumEnvs{} parallel environments, learning rate $10^{-3}$, discount
+$0.97$, entropy cost $0.02$, observation normalisation on, policy MLP
+$(32,32,32,32)$ and value MLP $(256,256,256,256,256)$. \emph{Deviation:} we
+trained for \teacherSteps{} environment steps instead of the shipped
+$20{,}000{,}000$, because at 20\,M the policy had not yet become a useful
+demonstrator. Figure~\ref{fig:ppo} shows the learning curve, from which the
+reader can see what 20\,M would have given. Training took
+\teacherWallMin{} minutes on one \gpuName{}. Demonstrations are recorded from
+the \emph{deterministic} (mean) action of the final policy.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/ppo_curve.png}
+\caption{PPO teacher learning curve. Shaded band is the across-episode standard
+deviation at each evaluation point.}
+\label{fig:ppo}
+\end{figure}
+
+\textbf{Teacher success and filtering.} On the \nEvalPerSeed{} held-out initial
+conditions the deterministic teacher succeeds
+\teacherSuccSigmaZeroPtZero\% of the time (mean return
+\teacherRetSigmaZeroPtZero). The clean demonstration pool
+\emph{is} filtered to successful episodes, so the baseline student learns only
+from successful behaviour; the noisy pools are deliberately \emph{not}
+filtered, because degraded data quality is the independent variable in
+Option~B. Table~\ref{tab:data} states this per dataset.
+
+\input{tables/data.tex}
+
+\section{Demonstration quality}
+The clean pool contains \datasigmaZeroEps{} episodes
+(\datasigmaZeroTrans{} transitions), with mean length
+$\datasigmaZeroLenMean \pm \datasigmaZeroLenStd$ control steps. Lengths are
+almost constant because the environment does not terminate on success --- every
+episode runs to the horizon --- so length carries little information here, which
+is itself worth noting when interpreting "trajectory length" statistics for this
+benchmark.
+
+Figure~\ref{fig:demos} inspects the data. The box-to-target distance traces show
+the characteristic shape of the teacher's behaviour: a reach phase, then a lift
+that brings the distance down, then a hold near the target. Coverage of initial
+conditions is uniform over the sampled region by construction, and the executed
+action distribution shows which joints the teacher actually drives.
+Figure~\ref{fig:frames} shows frames from expert rollouts.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/demos.png}
+\caption{Clean demonstration pool: episode lengths, box-to-target distance
+traces, coverage of initial conditions, and the distribution of executed
+actions.}
+\label{fig:demos}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/demo_frames.png}
+\caption{Expert demonstrations, frames sampled uniformly in time. Full videos
+are in \texttt{videos/}.}
+\label{fig:frames}
+\end{figure}
+
+\textbf{Consistency, coverage and visible inefficiencies.} The teacher is a
+single deterministic policy, so trajectories starting from nearby initial
+conditions are highly consistent --- there is no multi-modality of the kind that
+motivates generative policies, which matters when interpreting the ACT-versus-
+flow-matching comparison later. The inefficiencies that \emph{are} visible are
+(i) the policy often approaches the box along a curved path rather than
+directly, and (ii) once near the target it dithers instead of settling, which is
+what the hold requirement in our success definition penalises.
+
+\section{Policy and training}
+We chose \textbf{ACT} (Action Chunking with Transformers). Inputs are the
+normalised \obsDim-dimensional state; outputs are a chunk of $H=\chunkSize$
+future actions (\actDim{} dimensions each), i.e. $\chunkSize\times\ctrlDt$
+seconds of open-loop action. The model is the transformer CVAE of the ACT paper:
+a posterior encoder sees the ground-truth action chunk and the observation and
+emits a style latent $z$; a transformer encoder-decoder with $H$ learned
+decoder queries maps $(z,\text{obs})$ to the chunk; the loss is an $L_1$
+reconstruction term on the chunk plus $\beta\,\mathrm{KL}$ with $\beta=10$. At
+test time $z$ is set to the prior mean. Padded chunk steps at the end of an
+episode are excluded from the loss by a mask.
+
+\textbf{Deviations from the reference implementation}, all deliberate: no
+ResNet image backbone (observations are state, so the conditioning token is a
+linear projection of the state vector); pre-layer-norm blocks with GELU instead
+of post-LN with ReLU; AdamW with linear warmup and cosine decay; bf16 autocast;
+and an exponential moving average of the weights, which is what we evaluate.
+Our implementation is self-contained in \texttt{code/hw2/policies/act.py} (no
+third-party library is vendored).
+
+\textbf{Training configuration.} \trainSteps{} gradient steps, batch size
+\batchSize, learning rate \learnRate{} (cosine), weight decay $10^{-4}$,
+gradient-norm clip $1.0$, EMA decay $0.999$,
+\resquantityactNOneZeroZeroSZeroPtZeroParams\,M parameters. Observations and
+actions are standardised per dimension; crucially the statistics are fit on the
+subset actually used by each condition, never on the full pool, so the 25-demo
+condition cannot borrow information from the 100-demo pool. Seeds
+$\{0,1,2\}$ control model init, data shuffling and the CVAE sampling.
+Figure~\ref{fig:loss} shows the loss curves for all ACT runs.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/loss.png}
+\caption{ACT training loss (left: total objective; right: action $L_1$) for
+every condition and seed.}
+\label{fig:loss}
+\end{figure}
+
+\textbf{Inference.} We use ACT's temporal ensembling (\execMode): the policy is
+queried at every control step and all chunk predictions covering the current
+timestep are averaged with exponential weights. Actions are de-standardised and
+clipped to $[-1,1]$ before being passed to the simulator.
+
+\section{Baseline results}
+The baseline (100 clean demonstrations) reaches
+\resquantityactNOneZeroZeroSZeroPtZeroMean\%
+[\resquantityactNOneZeroZeroSZeroPtZeroLo,
+\resquantityactNOneZeroZeroSZeroPtZeroHi] success over
+\resquantityactNOneZeroZeroSZeroPtZeroNEval{} evaluation episodes
+(\nSeeds{} seeds $\times$ \nEvalPerSeed{} held-out initial conditions, Wilson
+95\% interval), against a teacher success of
+\teacherSuccSigmaZeroPtZero\%. Evaluation never replays a training trajectory:
+the evaluation seeds are a fixed set disjoint from the demonstration-collection
+seeds, and are identical across every condition in this report. Representative
+success and failure rollouts are in \texttt{videos/}.
+
+\textbf{The gap between a \teacherSuccSigmaZeroPtZero\% teacher and a
+\resquantityactNOneZeroZeroSZeroPtZeroMean\% student is the main object of
+study in this report}, so Section~\ref{sec:fail} is devoted to establishing
+what causes it. We state up front that we checked the obvious explanations and
+they are not the cause: the stored data is faithful, the model fits it, and the
+student is accurate wherever the teacher goes.
+
+\textbf{Inference mode.} ACT emits a chunk of \chunkSize{} actions, and how
+much of that chunk is executed before re-planning matters a great deal here
+(Table~\ref{tab:modes}). Executing the whole chunk open loop gives
+\diagModeChunkFullSucc\%; ACT's temporal ensembling gives
+\diagModeEnsSucc\%; predicting a fresh chunk every control step and executing
+only its first action gives \diagModeChunkOneSucc\%, and more than doubles the
+fraction of episodes in which the gripper ever reaches the box
+(\diagModeChunkOneBox\% versus \diagModeEnsBox\%). We report temporal
+ensembling as the headline because it was the pre-specified choice (it is the
+ACT paper's default), and give the re-planning column alongside it for every
+condition rather than switching to the better mode after seeing test numbers.
+The ordering is informative in itself: on this task the value of action
+chunking is in \emph{training} the policy, not in executing chunks open loop.
+
+\input{tables/modes.tex}
+
+\section{Data ablation}
+\textbf{Option A --- quantity.} Students were trained on nested subsets of the
+same clean pool, so the 25-demo set is a strict subset of the 50-demo set,
+which is a strict subset of the 100-demo set; nothing else changes.
+Success rises from \resquantityactNTwoFiveSZeroPtZeroMean\% (25 demos) to
+\resquantityactNFiveZeroSZeroPtZeroMean\% (50) to
+\resquantityactNOneZeroZeroSZeroPtZeroMean\% (100); see
+Figure~\ref{fig:quantity}. The paired comparison $25\!\rightarrow\!100$ gives
+$\Delta=\cmpQtyTwentyFiveToHundredDelta$\%
+[\cmpQtyTwentyFiveToHundredLo, \cmpQtyTwentyFiveToHundredHi],
+McNemar $p=\cmpQtyTwentyFiveToHundredP$.
+
+\textbf{Option B --- teacher action noise.} Further pools were collected with
+Gaussian noise added to the teacher's action \emph{during} environment
+interaction, $a = \mathrm{clip}(\pi(s)+\varepsilon,-1,1)$ with
+$\varepsilon\sim\mathcal{N}(0,\sigma^2 I)$, applied before the environment's own
+\texttt{action\_scale} and actuator clipping. The stored action is the one
+actually executed. Dataset size is held at 100 episodes and the pools are
+\emph{not} filtered for success, so the independent variable is data quality.
+
+A first attempt at $\sigma\in\{0.1,0.3\}$ produced \emph{no} usable contrast:
+the teacher still succeeded \teacherSuccSigmaZeroPtOne\% and
+\teacherSuccSigmaZeroPtThree\% of the time, because the noise is injected into a
+\emph{closed-loop} delta-action policy, which simply corrects for it at the next
+step. A quality ablation says nothing in a regime where quality has not actually
+degraded, so we extended the sweep to $\sigma\in\{0.5,1,2\}$, where teacher
+success falls to \teacherSuccSigmaZeroPtFive\%, \teacherSuccSigmaOnePtZero\% and
+\teacherSuccSigmaTwoPtZero\%.
+
+\textbf{The result is non-monotonic, and its sign depends on the inference
+mode.} Under the pre-specified headline mode (temporal ensembling), students
+trained on the noisy pools score \resnoiseactNOneZeroZeroSZeroPtFiveMean\%,
+\resnoiseactNOneZeroZeroSOnePtZeroMean\% and
+\resnoiseactNOneZeroZeroSTwoPtZeroMean\% against the clean baseline's
+\resquantityactNOneZeroZeroSZeroPtZeroMean\%, i.e.\ moderate noise is roughly
+neutral and heavy noise is catastrophic. Under re-planning every control step,
+the same $\sigma=0.5$ checkpoints reach
+\conenoiseactNOneZeroZeroSZeroPtFiveMean\% against the clean baseline's
+\conequantityactNOneZeroZeroSZeroPtZeroMean\% --- that is, demonstrations from a
+\emph{worse} teacher produce a substantially \emph{better} student
+($\Delta=\cmpCOneNoiseLowDelta$\%
+[\cmpCOneNoiseLowLo, \cmpCOneNoiseLowHi], $p=\cmpCOneNoiseLowP$), and the
+gripper reaches the box in \conenoiseactNOneZeroZeroSZeroPtFiveBox\% of episodes
+versus \conequantityactNOneZeroZeroSZeroPtZeroBox\%. Both comparisons appear in
+Table~\ref{tab:paired}.
+
+The mechanism is the one identified in Section~\ref{sec:fail}: the student's
+binding constraint is not the optimality of the demonstrated actions but the
+\emph{breadth of the state distribution} they cover, and perturbing the teacher
+during interaction is precisely what broadens it. At $\sigma=0.5$ the coverage
+gain outweighs the loss of demonstrator quality; by $\sigma=1$ the teacher
+succeeds only \teacherSuccSigmaOnePtZero\% of the time and the demonstrations no
+longer contain the task, so the student collapses. We note the confound
+explicitly: that condition changes demonstrator quality and state coverage at
+the same time, and the clean way to separate them --- inject noise for coverage
+but keep only the episodes that still succeed --- is the experiment we would run
+next. We also flag the obvious caveat that conclusions about demonstration
+quality here are mode-dependent, which is itself a reason to report both modes
+rather than one.
+
+\input{tables/paired.tex}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.49\linewidth]{figures/quantity.png}
+\hfill
+\includegraphics[width=0.49\linewidth]{figures/noise.png}
+\caption{Left: effect of demonstration quantity (Option A). Right: effect of
+demonstration quality via teacher action noise (Option B). Error bars are
+Wilson 95\% intervals on the pooled episodes; small dots are individual seeds.}
+\label{fig:quantity}
+\label{fig:noise}
+\end{figure}
+
+\textbf{Additional modern baseline.} Because the assignment's two named methods
+date from 2023, we also trained a flow-matching policy (rectified/conditional
+flow matching with a DiT-style adaLN-Zero denoiser over the action chunk, the
+action representation used by recent VLA action experts such as $\pi_0$) on the
+same clean 100-demonstration pool. It reaches
+\resalgorithmflowNOneZeroZeroSZeroPtZeroMean\%
+[\resalgorithmflowNOneZeroZeroSZeroPtZeroLo,
+\resalgorithmflowNOneZeroZeroSZeroPtZeroHi], versus ACT's
+\resquantityactNOneZeroZeroSZeroPtZeroMean\%
+($\Delta=\cmpActToFlowDelta$\% [\cmpActToFlowLo, \cmpActToFlowHi],
+$p=\cmpActToFlowP$). This arm is supplementary; the required baseline and
+ablation arms all use ACT, as Part~3 requires a single fixed algorithm.
+
+\section{Failure analysis}
+\label{sec:fail}
+We localised the teacher--student gap with four checks, reported here in the
+order that rules out the cheapest explanations first.
+
+\textbf{1. The demonstrations are faithfully recorded.} Replaying each stored
+action sequence from the initial condition it was collected from reproduces the
+stored observations: the reset state matches to \diagResetDev{} and the
+deviation after one step is \diagReplayStepOneDev. The deviation then grows over
+the episode, but that is chaotic amplification of floating-point noise in a
+contact-rich simulation (a single-environment replay and a 512-environment
+batched rollout do not execute bit-identical kernels), not a misalignment: a
+misaligned pairing would be wrong at the first step. So the
+(observation, action) pairing and the seeding are correct.
+
+\textbf{2. The model fits the data.} Final training action $L_1$ is
+\diagMaeTrainStd{} action standard deviations, and the one-step action error on
+training states is \diagMaeTrainRaw{} in raw action units. This is not
+underfitting.
+
+\textbf{3. The failure is covariate shift, not generalisation of the action
+map.} Evaluated at the states the \emph{teacher} visits, the student's action
+error is \diagMaeTeacherRaw{} --- essentially the same as on its own training
+states, so the learned action map generalises fine across initial conditions.
+Evaluated at the states the \emph{student itself} visits, the error is
+\diagMaeStudentRaw, a factor of \diagMaeRatio{} worse. The student is accurate
+everywhere the teacher goes and badly wrong as soon as it leaves that
+distribution. Consistently, evaluating on the initial conditions the
+demonstrations were collected from gives only \diagTrainInitSucc\% (versus
+\diagTestInitSucc\% on held-out ones): the student cannot reliably reproduce
+trajectories whose own starting states it was trained on, so the problem is
+closed-loop execution rather than memorisation or initial-condition coverage.
+
+\textbf{4. Where the episodes actually die.} Figure~\ref{fig:failure} splits the
+per-episode diagnostics by outcome, classified by a mutually exclusive taxonomy
+computed from the per-episode diagnostics. Of \failNFail{} failures out of
+\failNEval{} evaluation episodes, the modal class is
+\textbf{``\failTopLabel''} with \failTopCount{} episodes (\failTopShare\% of all
+failures); the remainder are \failOtherList. In other words the dominant
+failure is \emph{not} a grasp or transport failure but a \textbf{reaching}
+failure: in most failed episodes the gripper never comes within
+$12\,\mathrm{mm}$ of the box at all (the gripper reaches the box in only
+\failReachedBox\% of episodes), so the policy never gets far enough to attempt
+a lift. That is notable because the box position \emph{relative to the gripper}
+is given directly in the observation, so this is a servoing behaviour the
+student fits accurately on-distribution and still fails to execute --- the
+signature of drift rather than of a missing input.
+
+Success is also threshold-sensitive, which is why we report the sweep: it rises
+from \failSuccRadiusZeroPtZeroThree\% at a $3\,$cm tolerance to
+\failSuccRadiusZeroPtZeroFive\% at our \successRadiusCm\,cm criterion and
+saturates at \failSuccRadiusZeroPtOne\% by $10\,$cm, so a modest number of
+episodes end just outside the tolerance while most end far from it.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/failure.png}
+\caption{Failure analysis for the baseline student: distance traces split by
+outcome, distribution of closest approach to the target, and the failure
+taxonomy.}
+\label{fig:failure}
+\end{figure}
+
+\textbf{Why this is the expected failure, and what it implies for the
+ablations.} This is the compounding-error argument for behaviour cloning in its
+textbook form: the student is trained only on the teacher's state distribution,
+and the grasp is precisely the point where a small action error moves the system
+into a state the teacher never demonstrates (box nudged, fingers misaligned),
+from which there is no corrective behaviour in the data to imitate. Action
+chunking bounds how fast error compounds \emph{within} a chunk, which is why
+re-planning every step beats executing chunks open loop, but it cannot supply a
+recovery behaviour that the demonstrations do not contain.
+
+It also explains the shape of both ablations. More of the same on-distribution
+demonstrations attacks coverage of \emph{initial} conditions, which
+diagnostic~3 shows is not the binding constraint --- consistent with the modest
+quantity effect we measure. And it explains the most interesting result in the
+quality ablation: at $\sigma=0.5$ the demonstrations come from a
+\teacherSuccSigmaZeroPtFive\% teacher rather than a
+\teacherSuccSigmaZeroPtZero\% one, yet the student is not correspondingly worse
+and reaches the box \emph{more} often, because perturbing the teacher during
+interaction is exactly what broadens the state distribution the student is
+trained on. Degrading the demonstrator and broadening coverage are confounded in
+that condition, and the two effects push in opposite directions; separating them
+(noise injected for coverage while keeping only successful episodes) is the
+experiment we would run next.
+
+\section{Reproducibility and reflection}
+\textbf{Software.} Python \verpython, jax \verjax{} / jaxlib \verjaxlib{}
+(CUDA\,12), flax \verflax, brax \verbrax, mujoco \vermujoco, mujoco-mjx
+\vermujocomjx, \texttt{playground} \verplayground{} pinned at upstream commit
+\texttt{\playgroundSha}, torch \vertorch, numpy \vernumpy. Hardware:
+\gpuName{} on \hostName.
+
+\textbf{Two environment-specific issues worth recording.} (i) The cluster's GPU
+nodes ship no NVIDIA graphics userspace, so the EGL rendering path in the
+assignment's reference snippet cannot work; all rendering here goes through a
+software OSMesa stack configured from inside Python before \texttt{mujoco} is
+imported, because PyOpenGL resolves \texttt{libOSMesa} through
+\texttt{ctypes.util.find\_library}, which does not consult
+\texttt{LD\_LIBRARY\_PATH}. (ii) \texttt{brax} 0.14.2 still calls
+\texttt{jax.device\_put\_replicated}, which recent jax removed, so jax is
+pinned to \verjax{} and flax to \verflax; installing the newest of each gives
+an \texttt{AttributeError} only once PPO actually starts.
+
+\textbf{Determinism.} MJX reproduces a given initial condition exactly
+(single-environment and batched resets agree to \diagResetDev), but a replay of
+the same action sequence diverges from the original rollout at a rate set by
+floating-point noise, because batched and unbatched rollouts do not execute
+identical kernels. Success labels are unaffected, but exact trajectory-level
+reproduction of a stored episode should not be expected.
+
+\textbf{Commands.} See \texttt{README.md}; the three stages are
+\texttt{stage1\_teacher\_collect.py} (teacher + datasets + expert videos),
+\texttt{stage2\_run\_conditions.py} (train + evaluate every condition), and
+\texttt{stage3\_report.py} (aggregate, figures, tables, this PDF). Seeds are
+\{0,1,2\} for students, \texttt{PRNGKey(7777)} split for the shared evaluation
+initial conditions, and \texttt{PRNGKey}$(1000+\lfloor 1000\sigma \rfloor)$ for
+demonstration collection.
+
+\textbf{What more compute or time would buy.} The clearest limitation is the
+teacher: our success criterion is strict and the PPO teacher is itself far from
+perfect, which compresses the dynamic range of every student comparison. With
+more time we would (i) train the teacher to a genuinely high success rate, or
+use a scripted expert, so that student scores are not bounded by a mediocre
+demonstrator, (ii) add a DAgger-style or noise-injected-recovery arm to attack
+the grasp-failure mode directly rather than only measuring it, and (iii) run
+more seeds, since even with paired evaluation the seed-to-seed spread
+(visible as dots in Figure~\ref{fig:quantity}) is comparable to some of the
+effects we are trying to resolve.
+
+\input{tables/prov.tex}
+
+\section{Citations and use of tools}
+\begin{itemize}
+\item MuJoCo Playground: Zakka et al., \emph{MuJoCo Playground}, 2025,
+\url{https://arxiv.org/abs/2502.08844}; code
+\url{https://github.com/google-deepmind/mujoco_playground} (commit
+\texttt{\playgroundSha}). The environment, its PPO hyperparameters, and the
+random-action snippet in the assignment come from here.
+\item ACT: Zhao et al., \emph{Learning Fine-Grained Bimanual Manipulation with
+Low-Cost Hardware}, RSS 2023, \url{https://arxiv.org/abs/2304.13705};
+reference implementation \url{https://github.com/tonyzhaozh/act}. Our ACT is a
+re-implementation following the paper, with the deviations listed in Section~3.
+\item Diffusion Policy (not used for the required arms, cited as the
+alternative the assignment names): Chi et al., RSS 2023,
+\url{https://arxiv.org/abs/2303.04137}.
+\item Flow matching (supplementary baseline): Lipman et al., ICLR 2023,
+\url{https://arxiv.org/abs/2210.02747}; Liu et al.,
+\url{https://arxiv.org/abs/2209.03003}; DiT backbone: Peebles and Xie,
+\url{https://arxiv.org/abs/2212.09748}; $\pi_0$ action expert: Black et al.,
+\url{https://arxiv.org/abs/2410.24164}.
+\item Brax (PPO implementation): Freeman et al.,
+\url{https://github.com/google/brax}.
+\item \textbf{LLM use.} An LLM (Claude) was used as a coding assistant: to
+write and debug the implementation and cluster-job scripts, to diagnose the
+OSMesa/EGL and jax/brax version problems described above, and to draft this
+report. All experimental numbers in this report are generated programmatically
+from the stored result files by \texttt{stage3\_report.py} (every quantity in
+the prose is a LaTeX macro computed from those files, not typed by hand), and
+the experiment design choices, the success criterion, and the interpretation
+were reviewed by the author.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,84 @@
+{
+  "D1_replay_max_obs_deviation": [
+    4.809784412384033,
+    0.1093338280916214,
+    0.08652578294277191,
+    0.508479118347168,
+    0.04596996307373047
+  ],
+  "D1_replay_success": [
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "D1_stored_success": [
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "D2_train_inits": {
+    "n_episodes": 100,
+    "n_success": 39,
+    "success_rate": 0.39,
+    "success_ci95": [
+      0.300167219319702,
+      0.48797163832501844
+    ],
+    "min_dist_mean": 0.2191486805677414,
+    "final_dist_mean": 0.2760459780693054,
+    "return_mean": 453.1141662597656,
+    "return_std": 478.2253723144531,
+    "out_of_bounds_frac": 0.04,
+    "reached_box_frac": 0.23,
+    "min_grip_dist_mean": 0.024140892550349236,
+    "success_radius": 0.05,
+    "success_hold": 10
+  },
+  "D2_test_inits": {
+    "n_episodes": 100,
+    "n_success": 29,
+    "success_rate": 0.29,
+    "success_ci95": [
+      0.21014706973984146,
+      0.38539074940007934
+    ],
+    "min_dist_mean": 0.24530574679374695,
+    "final_dist_mean": 0.2977047264575958,
+    "return_mean": 372.409912109375,
+    "return_std": 407.9970397949219,
+    "out_of_bounds_frac": 0.02,
+    "reached_box_frac": 0.17,
+    "min_grip_dist_mean": 0.026784073561429977,
+    "success_radius": 0.05,
+    "success_hold": 10
+  },
+  "D3_train_state_action_mae": 0.03149838000535965,
+  "D3_train_state_action_mae_in_std": 0.1202406957745552,
+  "D3_teacher_state_action_mae": 0.032705601304769516,
+  "D3_student_state_action_mae": 0.6279273629188538,
+  "D3_mae_ratio_student_over_teacher": 19.199382781982422,
+  "D4_ensemble": {
+    "success_rate": 0.29,
+    "reached_box_frac": 0.17,
+    "min_dist_mean": 0.24438706040382385
+  },
+  "D4_chunk_full": {
+    "success_rate": 0.08,
+    "reached_box_frac": 0.12,
+    "min_dist_mean": 0.3038822412490845
+  },
+  "D4_chunk_1": {
+    "success_rate": 0.33,
+    "reached_box_frac": 0.38,
+    "min_dist_mean": 0.18660610914230347
+  },
+  "D4_chunk_5": {
+    "success_rate": 0.25,
+    "reached_box_frac": 0.19,
+    "min_dist_mean": 0.2539640963077545
+  }
+}

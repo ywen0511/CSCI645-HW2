@@ -1,0 +1,18 @@
+{
+  "host": "dcwipphhgc216",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "platform": "Linux-6.8.0-139-generic-x86_64-with-glibc2.39",
+  "playground_commit": "d59156e099a8785dd58fbce2e25a6ee1f7b5800c",
+  "versions": {
+    "python": "3.12.15",
+    "jax": "0.9.2",
+    "jaxlib": "0.9.2",
+    "flax": "0.11.2",
+    "brax": "0.14.2",
+    "mujoco": "3.15.0",
+    "mujoco-mjx": "3.15.0",
+    "playground": "0.2.0",
+    "torch": "2.11.0+cu128",
+    "numpy": "2.5.3"
+  }
+}

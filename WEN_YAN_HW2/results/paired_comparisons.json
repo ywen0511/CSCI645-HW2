@@ -1,0 +1,342 @@
+{
+  "ensemble": [
+    {
+      "a": [
+        "quantity",
+        "act",
+        25,
+        0.0
+      ],
+      "b": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "success_a": 0.11333333333333333,
+      "success_b": 0.26,
+      "delta": 0.14666666666666667,
+      "ci95": [
+        0.07666666666666666,
+        0.21666666666666667
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 22,
+      "mcnemar_b10": 2,
+      "mcnemar_p": 3.5881996154785156e-05,
+      "significant_at_05": true,
+      "key": "QtyTwentyFiveToHundred",
+      "label": "25 demos $\\rightarrow$ 100 demos"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        50,
+        0.0
+      ],
+      "b": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "success_a": 0.14666666666666667,
+      "success_b": 0.26,
+      "delta": 0.11333333333333334,
+      "ci95": [
+        0.04666666666666669,
+        0.17999999999999997
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 18,
+      "mcnemar_b10": 4,
+      "mcnemar_p": 0.004343509674072266,
+      "significant_at_05": true,
+      "key": "QtyFiftyToHundred",
+      "label": "50 demos $\\rightarrow$ 100 demos"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "noise",
+        "act",
+        100,
+        0.5
+      ],
+      "success_a": 0.26,
+      "success_b": 0.20666666666666667,
+      "delta": -0.053333333333333344,
+      "ci95": [
+        -0.13,
+        0.023333333333333345
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 10,
+      "mcnemar_b10": 19,
+      "mcnemar_p": 0.13604594767093658,
+      "significant_at_05": false,
+      "key": "NoiseLow",
+      "label": "clean $\\rightarrow$ noise $\\sigma{=}0.5$"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "noise",
+        "act",
+        100,
+        1.0
+      ],
+      "success_a": 0.26,
+      "success_b": 0.0,
+      "delta": -0.26,
+      "ci95": [
+        -0.33,
+        -0.19333333333333333
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 0,
+      "mcnemar_b10": 26,
+      "mcnemar_p": 2.9802322387695312e-08,
+      "significant_at_05": true,
+      "key": "NoiseMid",
+      "label": "clean $\\rightarrow$ noise $\\sigma{=}1$"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "noise",
+        "act",
+        100,
+        2.0
+      ],
+      "success_a": 0.26,
+      "success_b": 0.0,
+      "delta": -0.26,
+      "ci95": [
+        -0.33,
+        -0.19333333333333333
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 0,
+      "mcnemar_b10": 26,
+      "mcnemar_p": 2.9802322387695312e-08,
+      "significant_at_05": true,
+      "key": "NoiseHigh",
+      "label": "clean $\\rightarrow$ noise $\\sigma{=}2$"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "algorithm",
+        "flow",
+        100,
+        0.0
+      ],
+      "success_a": 0.26,
+      "success_b": 0.22,
+      "delta": -0.04000000000000001,
+      "ci95": [
+        -0.12333333333333335,
+        0.043333333333333335
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 11,
+      "mcnemar_b10": 20,
+      "mcnemar_p": 0.14961278438568115,
+      "significant_at_05": false,
+      "key": "ActToFlow",
+      "label": "ACT $\\rightarrow$ flow matching"
+    }
+  ],
+  "chunk1": [
+    {
+      "a": [
+        "quantity",
+        "act",
+        25,
+        0.0
+      ],
+      "b": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "success_a": 0.07666666666666666,
+      "success_b": 0.32,
+      "delta": 0.24333333333333335,
+      "ci95": [
+        0.1733333333333333,
+        0.31666666666666665
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 29,
+      "mcnemar_b10": 3,
+      "mcnemar_p": 2.5560148060321808e-06,
+      "significant_at_05": true,
+      "key": "QtyTwentyFiveToHundred",
+      "label": "25 demos $\\rightarrow$ 100 demos"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        50,
+        0.0
+      ],
+      "b": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "success_a": 0.19333333333333333,
+      "success_b": 0.32,
+      "delta": 0.12666666666666668,
+      "ci95": [
+        0.06333333333333335,
+        0.19000000000000003
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 18,
+      "mcnemar_b10": 5,
+      "mcnemar_p": 0.010622024536132812,
+      "significant_at_05": true,
+      "key": "QtyFiftyToHundred",
+      "label": "50 demos $\\rightarrow$ 100 demos"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "noise",
+        "act",
+        100,
+        0.5
+      ],
+      "success_a": 0.32,
+      "success_b": 0.6666666666666666,
+      "delta": 0.3466666666666666,
+      "ci95": [
+        0.2533333333333333,
+        0.43999999999999995
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 49,
+      "mcnemar_b10": 7,
+      "mcnemar_p": 7.455210310203242e-09,
+      "significant_at_05": true,
+      "key": "NoiseLow",
+      "label": "clean $\\rightarrow$ noise $\\sigma{=}0.5$"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "noise",
+        "act",
+        100,
+        1.0
+      ],
+      "success_a": 0.32,
+      "success_b": 0.01,
+      "delta": -0.31,
+      "ci95": [
+        -0.3766666666666667,
+        -0.24333333333333335
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 0,
+      "mcnemar_b10": 30,
+      "mcnemar_p": 1.862645149230957e-09,
+      "significant_at_05": true,
+      "key": "NoiseMid",
+      "label": "clean $\\rightarrow$ noise $\\sigma{=}1$"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "noise",
+        "act",
+        100,
+        2.0
+      ],
+      "success_a": 0.32,
+      "success_b": 0.0,
+      "delta": -0.32,
+      "ci95": [
+        -0.39,
+        -0.25
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 0,
+      "mcnemar_b10": 30,
+      "mcnemar_p": 1.862645149230957e-09,
+      "significant_at_05": true,
+      "key": "NoiseHigh",
+      "label": "clean $\\rightarrow$ noise $\\sigma{=}2$"
+    },
+    {
+      "a": [
+        "quantity",
+        "act",
+        100,
+        0.0
+      ],
+      "b": [
+        "algorithm",
+        "flow",
+        100,
+        0.0
+      ],
+      "success_a": 0.32,
+      "success_b": 0.12,
+      "delta": -0.2,
+      "ci95": [
+        -0.2733333333333333,
+        -0.13
+      ],
+      "n_episodes_paired": 100,
+      "mcnemar_b01": 2,
+      "mcnemar_b10": 27,
+      "mcnemar_p": 1.6242265701293945e-06,
+      "significant_at_05": true,
+      "key": "ActToFlow",
+      "label": "ACT $\\rightarrow$ flow matching"
+    }
+  ]
+}
