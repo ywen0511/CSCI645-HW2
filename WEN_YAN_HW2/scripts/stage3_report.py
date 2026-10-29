@@ -104,7 +104,7 @@ def main():
     confirmed = fresh_ct["ci_ic"][0] > 0
     # historical v1 numbers (different, unrecoverable checkpoints)
     hist = {m: {} for m in MODES}
-    for p in glob.glob(str(RES / "historical_v1" / "conditions" / "*.json")):
+    for p in sorted(glob.glob(str(RES / "historical_v1" / "conditions" / "*.json"))):
         r = CM.read_json(p)
         for m, key in (("ensemble", "eval"), ("replan1", "eval_chunk1")):
             hist[m].setdefault(cell_of(r["name"]), []).append(
