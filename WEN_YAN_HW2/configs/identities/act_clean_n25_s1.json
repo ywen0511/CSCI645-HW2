@@ -1,0 +1,32 @@
+{
+  "name": "act_clean_n25_s1",
+  "identity": {
+    "dataset": "demos_sigma0.npz",
+    "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+    "config": {
+      "algo": "act",
+      "n_demos": 25,
+      "seed": 1,
+      "successful_only": true,
+      "policy_overrides": {
+        "hidden_dim": 256,
+        "dim_feedforward": 1024
+      },
+      "steps": 6000,
+      "batch_size": 128,
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "warmup": 200,
+      "ema_decay": 0.999,
+      "chunk": 30
+    },
+    "train_code_sha256": "39c38659e4e8fcea3988a86deb165efe659569c753055ef7774ef3dbe555fcd0"
+  },
+  "identity_sha256": "cb53eaacf87cf5b7afb8423351f88ee3aa3a6ce9960e413803d9d4862ea4919b",
+  "policy_sha256": "97f2913975a7c5439513fd86827db65fbf8bb43024899eb26320a05829418b40",
+  "provenance": "retrained (historical checkpoints were not recoverable)",
+  "git": "c59019f3f7be95961e1dfa4f7fbd6f1722ca5aef+dirty",
+  "host": "dcwipphhgc216.edc.nam.gm.com",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "wall_s": 265.0617651939392
+}

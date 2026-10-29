@@ -1,0 +1,101 @@
+episode,outcome,success,term_cause,n_valid_states,longest_hold_steps,min_box_target_m,final_box_target_m,any_finger_contact,contact_steps,max_box_lift_m,min_gripper_box_m,within_12mm,left_after_success
+0,"lifted the box, never within target radius",0,horizon,151,0,0.1827,0.1827,1,138,0.2345,0.0100,1,0
+1,success,1,horizon,151,110,0.0193,0.0271,1,123,0.3003,0.0064,1,0
+2,success,1,horizon,151,91,0.0202,0.0240,1,121,0.3183,0.0112,1,0
+3,success,1,horizon,151,113,0.0157,0.0164,1,137,0.3541,0.0058,1,0
+4,success,1,horizon,151,20,0.0354,0.2949,1,129,0.2190,0.0131,0,1
+5,success,1,horizon,151,101,0.0197,0.0206,1,134,0.3574,0.0109,1,0
+6,success,1,horizon,151,117,0.0162,0.0162,1,137,0.2953,0.0013,1,0
+7,"lifted the box, never within target radius",0,horizon,151,0,0.3629,0.4185,1,15,0.0287,0.0200,0,0
+8,success,1,horizon,151,122,0.0107,0.0109,1,137,0.2780,0.0005,1,0
+9,terminated early (box out of bounds / non-finite),0,out_of_bounds,47,0,0.2420,0.3236,1,8,0.1017,0.0146,0,0
+10,success,1,horizon,151,106,0.0009,0.0064,1,131,0.3288,0.0012,1,0
+11,success,1,horizon,151,121,0.0243,0.0243,1,134,0.3006,0.0168,0,0
+12,"lifted the box, never within target radius",0,horizon,151,0,0.3589,0.4326,1,40,0.0297,0.0069,1,0
+13,"lifted the box, never within target radius",0,horizon,151,0,0.3567,0.3719,1,53,0.0500,0.0141,0,0
+14,"lifted the box, never within target radius",0,horizon,151,0,0.1700,0.2781,1,10,0.0884,0.0134,0,0
+15,success,1,horizon,151,54,0.0400,0.0663,1,120,0.3094,0.0047,1,1
+16,success,1,horizon,151,122,0.0182,0.0474,1,138,0.3433,0.0118,1,0
+17,success,1,horizon,151,78,0.0123,0.0128,1,121,0.3116,0.0031,1,0
+18,success,1,horizon,151,104,0.0190,0.0260,1,132,0.3560,0.0106,1,0
+19,success,1,horizon,151,93,0.0140,0.0146,1,127,0.2655,0.0021,1,0
+20,success,1,horizon,151,104,0.0268,0.0268,1,133,0.3266,0.0159,0,0
+21,success,1,horizon,151,115,0.0174,0.0242,1,130,0.2606,0.0130,0,0
+22,success,1,horizon,151,120,0.0158,0.0256,1,135,0.3388,0.0189,0,0
+23,"lifted the box, never within target radius",0,horizon,151,0,0.2826,0.4171,1,8,0.0283,0.0212,0,0
+24,success,1,horizon,151,107,0.0214,0.0214,1,129,0.2484,0.0064,1,0
+25,"lifted the box, never within target radius",0,horizon,151,0,0.2573,0.3048,1,41,0.1111,0.0146,0,0
+26,success,1,horizon,151,88,0.0312,0.0639,1,126,0.2762,0.0079,1,1
+27,success,1,horizon,151,119,0.0082,0.0112,1,135,0.3309,0.0081,1,0
+28,success,1,horizon,151,121,0.0093,0.0094,1,138,0.3199,0.0024,1,0
+29,success,1,horizon,151,71,0.0344,0.3339,1,132,0.3226,0.0130,0,1
+30,"touched the box, never lifted it",0,horizon,151,0,0.2371,0.2474,1,39,0.0059,0.0171,0,0
+31,success,1,horizon,151,109,0.0093,0.0106,1,133,0.3020,0.0098,1,0
+32,success,1,horizon,151,101,0.0149,0.0189,1,137,0.2942,0.0077,1,0
+33,success,1,horizon,151,88,0.0117,0.0117,1,118,0.2826,0.0014,1,0
+34,success,1,horizon,151,94,0.0185,0.0185,1,124,0.2779,0.0037,1,0
+35,"lifted the box, never within target radius",0,horizon,151,0,0.3444,0.3865,1,116,0.0387,0.0008,1,0
+36,success,1,horizon,151,52,0.0123,0.0383,1,121,0.3396,0.0165,0,0
+37,success,1,horizon,151,109,0.0128,0.0281,1,124,0.3599,0.0080,1,0
+38,success,1,horizon,151,119,0.0068,0.0150,1,134,0.2388,0.0018,1,0
+39,"lifted the box, never within target radius",0,horizon,151,0,0.2058,0.3190,1,136,0.1438,0.0116,1,0
+40,success,1,horizon,151,98,0.0265,0.0273,1,133,0.3510,0.0151,0,0
+41,"touched the box, never lifted it",0,horizon,151,0,0.4140,0.4145,1,8,0.0055,0.0275,0,0
+42,success,1,horizon,151,109,0.0198,0.0225,1,131,0.3172,0.0021,1,0
+43,"touched the box, never lifted it",0,horizon,151,0,0.3755,0.3816,1,2,0.0044,0.0287,0,0
+44,"touched the box, never lifted it",0,horizon,151,0,0.4302,0.5001,1,73,0.0109,0.0237,0,0
+45,success,1,horizon,151,124,0.0203,0.0203,1,136,0.2647,0.0056,1,0
+46,success,1,horizon,151,114,0.0118,0.0118,1,134,0.2505,0.0047,1,0
+47,success,1,horizon,151,90,0.0063,0.0129,1,122,0.2868,0.0110,1,0
+48,success,1,horizon,151,127,0.0166,0.0166,1,135,0.2329,0.0089,1,0
+49,success,1,horizon,151,105,0.0227,0.0268,1,127,0.3325,0.0021,1,0
+50,"lifted the box, never within target radius",0,horizon,151,0,0.0908,0.4200,1,127,0.2838,0.0168,0,0
+51,success,1,horizon,151,86,0.0012,0.0035,1,119,0.2835,0.0106,1,0
+52,success,1,horizon,151,113,0.0268,0.0268,1,137,0.3167,0.0079,1,0
+53,success,1,horizon,151,98,0.0224,0.0224,1,125,0.2200,0.0004,1,0
+54,"touched the box, never lifted it",0,horizon,151,0,0.4249,0.4377,1,63,0.0061,0.0319,0,0
+55,"lifted the box, never within target radius",0,horizon,151,0,0.2740,0.3978,1,116,0.0996,0.0055,1,0
+56,success,1,horizon,151,100,0.0132,0.0212,1,122,0.2985,0.0097,1,0
+57,success,1,horizon,151,113,0.0258,0.0482,1,135,0.3501,0.0172,0,0
+58,never touched the box,0,horizon,151,0,0.4245,0.4346,0,0,0.0096,0.0288,0,0
+59,success,1,horizon,151,123,0.0280,0.0288,1,134,0.2637,0.0076,1,0
+60,"touched the box, never lifted it",0,horizon,151,0,0.4311,0.5104,1,29,0.0079,0.0331,0,0
+61,success,1,horizon,151,118,0.0203,0.0380,1,133,0.2453,0.0053,1,0
+62,success,1,horizon,151,111,0.0092,0.0092,1,133,0.2789,0.0071,1,0
+63,success,1,horizon,151,106,0.0236,0.0377,1,139,0.3229,0.0127,0,0
+64,"touched the box, never lifted it",0,horizon,151,0,0.2887,0.3242,1,12,0.0114,0.0306,0,0
+65,"touched the box, never lifted it",0,horizon,151,0,0.3973,0.4103,1,9,0.0058,0.0306,0,0
+66,success,1,horizon,151,74,0.0122,0.0163,1,119,0.2656,0.0014,1,0
+67,success,1,horizon,151,105,0.0043,0.0100,1,123,0.2119,0.0046,1,0
+68,success,1,horizon,151,104,0.0124,0.0124,1,125,0.2660,0.0030,1,0
+69,"touched the box, never lifted it",0,horizon,151,0,0.2201,0.2430,1,34,0.0062,0.0228,0,0
+70,success,1,horizon,151,115,0.0263,0.0467,1,132,0.3823,0.0040,1,0
+71,success,1,horizon,151,98,0.0191,0.0191,1,134,0.3424,0.0038,1,0
+72,success,1,horizon,151,110,0.0158,0.0352,1,129,0.3233,0.0190,0,0
+73,success,1,horizon,151,14,0.0449,0.1206,1,123,0.4113,0.0163,0,1
+74,"lifted the box, never within target radius",0,horizon,151,0,0.0804,0.0861,1,123,0.3622,0.0162,0,0
+75,success,1,horizon,151,118,0.0127,0.0181,1,138,0.3242,0.0015,1,0
+76,success,1,horizon,151,101,0.0175,0.0177,1,129,0.3879,0.0051,1,0
+77,success,1,horizon,151,126,0.0180,0.0466,1,137,0.2845,0.0104,1,0
+78,success,1,horizon,151,112,0.0052,0.0081,1,128,0.3005,0.0139,0,0
+79,terminated early (box out of bounds / non-finite),0,out_of_bounds,42,0,0.4818,0.4909,1,3,0.0114,0.0266,0,0
+80,success,1,horizon,151,105,0.0182,0.0182,1,128,0.2542,0.0053,1,0
+81,success,1,horizon,151,110,0.0179,0.0334,1,128,0.3710,0.0108,1,0
+82,success,1,horizon,151,89,0.0149,0.0149,1,121,0.2510,0.0051,1,0
+83,success,1,horizon,151,85,0.0344,0.0344,1,132,0.2803,0.0140,0,0
+84,success,1,horizon,151,102,0.0358,0.0538,1,136,0.2638,0.0108,1,1
+85,"within target radius, held < required steps",0,horizon,151,8,0.0471,0.0799,1,137,0.3961,0.0123,0,0
+86,success,1,horizon,151,100,0.0079,0.0079,1,125,0.2793,0.0020,1,0
+87,"touched the box, never lifted it",0,horizon,151,0,0.3368,0.3406,1,27,0.0032,0.0316,0,0
+88,success,1,horizon,151,100,0.0230,0.0246,1,135,0.3577,0.0084,1,0
+89,success,1,horizon,151,107,0.0109,0.0110,1,137,0.3467,0.0037,1,0
+90,"lifted the box, never within target radius",0,horizon,151,0,0.0909,0.1395,1,125,0.3691,0.0118,1,0
+91,success,1,horizon,151,118,0.0138,0.0192,1,131,0.3120,0.0219,0,0
+92,success,1,horizon,151,103,0.0115,0.0164,1,124,0.2493,0.0031,1,0
+93,"lifted the box, never within target radius",0,horizon,151,0,0.0790,0.4053,1,62,0.2138,0.0063,1,0
+94,success,1,horizon,151,32,0.0461,0.0978,1,137,0.3149,0.0010,1,1
+95,success,1,horizon,151,118,0.0068,0.0394,1,137,0.2818,0.0047,1,0
+96,success,1,horizon,151,112,0.0282,0.0413,1,128,0.3762,0.0060,1,0
+97,success,1,horizon,151,106,0.0086,0.0097,1,135,0.3677,0.0070,1,0
+98,"touched the box, never lifted it",0,horizon,151,0,0.4142,0.5337,1,30,0.0154,0.0186,0,0
+99,"touched the box, never lifted it",0,horizon,151,0,0.3796,0.4059,1,81,0.0101,0.0146,0,0

@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\scriptsize
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrrr}
+\toprule
+Suite B (replan) & Seed 0 & Seed 1 & Seed 2 & Mean & IC 95\% CI & 2-way CI \\
+\midrule
+ACT, 100 clean (baseline) & 21/100 & 20/100 & 20/100 & \textbf{20.3} & [14.7, 26.3] & [14.0, 27.3] \\
+ACT, 100 at $\sigma{=}0.5$ & 70/100 & 67/100 & 65/100 & \textbf{67.3} & [59.7, 74.7] & [58.7, 75.7] \\
+\midrule
+$\sigma{=}0.5$ $-$ clean & +49 & +47 & +45 & \textbf{+47.0} & [+39.0, +54.7] & [+37.7, +56.0] \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Suite B, the frozen confirmation: the same six checkpoints on 100 fresh initial conditions (\texttt{PRNGKey(\freshBase)}), replanning every step, 600 episodes. Last row: noisy minus clean, per seed index and for the mean (percentage points); sign-flip $p\freshP$.}
+\label{tab:fresh}
+\end{table}

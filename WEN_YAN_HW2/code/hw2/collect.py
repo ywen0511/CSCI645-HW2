@@ -23,7 +23,8 @@ import numpy as np
 def rollout(env, policy_fn, rng_keys, episode_length: int,
             action_noise: float = 0.0, target_rel_slice: Tuple[int, int] = (49, 52),
             box_rel_slice: Tuple[int, int] = (46, 49),
-            clip_actions: bool = True) -> Dict[str, np.ndarray]:
+            clip_actions: bool = True, spec=None,
+            noise_key=None) -> Dict[str, np.ndarray]:
     """Roll out a batch of episodes under `policy_fn`.
 
     Returns arrays with leading shape (B, T) / (B, T, dim):
@@ -33,7 +34,13 @@ def rollout(env, policy_fn, rng_keys, episode_length: int,
       rewards  (B, T)
       dist     (B, T+1)         box->target distance, including the reset state
       grip_dist(B, T)           gripper->box distance (grasp diagnostic)
-      done     (B, T)
+      done     (B, T)           raw env done of each transition (not sticky)
+
+    With `spec` given, the protocol-v2 ground-truth traces of
+    `hw2.envs.state_diagnostics_fn` are added as (B, T+1) arrays under their
+    own names (`dist` then becomes the SIMULATOR distance and the observation
+    distance moves to `dist_obs`), so `hw2.evaluate.score` applies unchanged.
+    `noise_key` seeds the action noise (historically PRNGKey(0)).
     """
     import jax
     import jax.numpy as jp
@@ -42,6 +49,10 @@ def rollout(env, policy_fn, rng_keys, episode_length: int,
     blo, bhi = box_rel_slice
     B = rng_keys.shape[0]
     vreset, vstep = jax.vmap(env.reset), jax.vmap(env.step)
+    vdiag = None
+    if spec is not None:
+        from hw2.envs import state_diagnostics_fn
+        vdiag = jax.vmap(state_diagnostics_fn(env, spec))
 
     def step_fn(carry, _):
         state, rng = carry
@@ -64,15 +75,27 @@ def rollout(env, policy_fn, rng_keys, episode_length: int,
             "grip_dist": jp.linalg.norm(nstate.obs[:, blo:bhi], axis=-1),
             "done": nstate.done,
         }
+        if vdiag is not None:
+            out["diag"] = vdiag(nstate)
         return (nstate, rng), out
 
     state0 = vreset(rng_keys)
     d0 = jp.linalg.norm(state0.obs[:, lo:hi], axis=-1)
+    if noise_key is None:
+        noise_key = jax.random.PRNGKey(0)
     (_, _), traj = jax.lax.scan(
-        step_fn, (state0, jax.random.PRNGKey(0)), None, length=episode_length
+        step_fn, (state0, noise_key), None, length=episode_length
     )
+    diag = traj.pop("diag", None)
     out = {k: np.asarray(jax.device_get(jp.swapaxes(v, 0, 1))) for k, v in traj.items()}
     out["dist"] = np.concatenate([np.asarray(jax.device_get(d0))[:, None], out["dist"]], axis=1)
+    out["done"] = out["done"].astype(bool)
+    if diag is not None:
+        d0g = jax.device_get(vdiag(state0))
+        out["dist_obs_v1"] = out.pop("dist")
+        for k, v in diag.items():
+            v = np.asarray(jax.device_get(jp.swapaxes(v, 0, 1)))
+            out[k] = np.concatenate([np.asarray(d0g[k])[:, None], v], axis=1)
     return out
 
 
@@ -110,9 +133,12 @@ def to_demoset(traj: Dict[str, np.ndarray], radius: float, hold: int,
                meta: Optional[dict] = None):
     """Convert rollout arrays into a DemoSet with per-episode success labels."""
     from hw2.data import DemoSet
-    from hw2.envs import success_from_distances
+    from hw2 import metrics as MT
 
     lengths = truncate_at_done(traj)
+    # protocol v2: success only over valid states (terminal state excluded)
+    v2 = MT.episode_metrics(traj["dist"], traj["done"], radius, hold,
+                            nonfinite=~np.isfinite(traj["dist"]))["success"]
     B = lengths.shape[0]
     obs, act, rew, ends, suc = [], [], [], [], []
     running = 0
@@ -123,9 +149,7 @@ def to_demoset(traj: Dict[str, np.ndarray], radius: float, hold: int,
         rew.append(traj["rewards"][b, :n])
         running += n
         ends.append(running)
-        # distances are length T+1 (reset state included); keep the valid prefix
-        suc.append(bool(success_from_distances(traj["dist"][b, : n + 1][None],
-                                               radius, hold)[0]))
+        suc.append(bool(v2[b]))
     m = {"success_radius": radius, "success_hold": hold}
     if meta:
         m.update(meta)

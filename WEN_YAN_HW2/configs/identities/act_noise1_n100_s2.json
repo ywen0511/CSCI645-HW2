@@ -1,0 +1,32 @@
+{
+  "name": "act_noise1_n100_s2",
+  "identity": {
+    "dataset": "demos_sigma1.npz",
+    "dataset_sha256": "305b604a50c73a305be077e748ff71fe0cf7cd1bf016048bd32741280033ac6f",
+    "config": {
+      "algo": "act",
+      "n_demos": 100,
+      "seed": 2,
+      "successful_only": false,
+      "policy_overrides": {
+        "hidden_dim": 256,
+        "dim_feedforward": 1024
+      },
+      "steps": 6000,
+      "batch_size": 128,
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "warmup": 200,
+      "ema_decay": 0.999,
+      "chunk": 30
+    },
+    "train_code_sha256": "39c38659e4e8fcea3988a86deb165efe659569c753055ef7774ef3dbe555fcd0"
+  },
+  "identity_sha256": "3a9bc2221a59fa5727a34ac7726b4806ad077620f3bdf1bb9b050ac35729dc5b",
+  "policy_sha256": "5a6c7c8a71f244c18fee751989024952b07d195fec04d3f6ed0f4734aed223c2",
+  "provenance": "retrained (historical checkpoints were not recoverable)",
+  "git": "c59019f3f7be95961e1dfa4f7fbd6f1722ca5aef+dirty",
+  "host": "dcwipphhgc216.edc.nam.gm.com",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "wall_s": 241.776597738266
+}

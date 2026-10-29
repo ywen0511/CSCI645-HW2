@@ -2,8 +2,8 @@
 it accepts a misplaced `from __future__ import ...` that fails at import."""
 import glob, importlib, os, sys, traceback
 os.environ["JAX_PLATFORMS"] = "cpu"
-PROJ = os.environ["PROJ"]
-sys.path.insert(0, os.path.join(PROJ, "code"))
+import common as CM
+PROJ = str(CM.PROJ)
 
 bad = []
 files = sorted(glob.glob(os.path.join(PROJ, "code", "hw2", "**", "*.py"), recursive=True)) \
@@ -19,7 +19,8 @@ for f in files:
 
 mods = ["hw2", "hw2.data", "hw2.envs", "hw2.collect", "hw2.teacher",
         "hw2.train_il", "hw2.evaluate", "hw2.aggregate", "hw2.figures",
-        "hw2.report", "hw2.policies.act", "hw2.policies.flow"]
+        "hw2.report", "hw2.policies.act", "hw2.policies.flow", "hw2.metrics",
+        "hw2.inference", "hw2.stats", "hw2.grid"]
 for m in mods:
     try:
         importlib.import_module(m)

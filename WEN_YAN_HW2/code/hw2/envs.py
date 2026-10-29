@@ -19,13 +19,32 @@ from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
-# Warren GPU nodes ship no NVIDIA graphics userspace (no libEGL_nvidia), so the
-# upstream `MUJOCO_GL=egl` recipe cannot work here. Rendering must go through a
-# software OSMesa stack, which needs no GPU at all.
-OSMESA_PREFIX = "/data/rtxw01/nbak/robot_intel/kztrgg/envs/osmesa_hw2"
+# Rendering backend. Nothing here is tied to one machine:
+#   HW2_GL=egl|glfw|osmesa   MuJoCo GL backend for video rendering
+#   HW2_OSMESA_PREFIX=<dir>  conda prefix holding libOSMesa (HW2_GL=osmesa only)
+# On machines without NVIDIA graphics userspace (our cluster's GPU nodes) EGL
+# cannot work, so we render with software OSMesa from a side conda prefix
+# (`conda create -p <dir> -c conda-forge mesalib=23.0.1`). Training and
+# evaluation never render, so they need no GL configuration at all.
+OSMESA_PREFIX = os.environ.get("HW2_OSMESA_PREFIX", "")
 
 
-def use_osmesa(prefix: str = OSMESA_PREFIX) -> None:
+def configure_rendering() -> str:
+    """Pick the GL backend from the environment. Call BEFORE `import mujoco`.
+
+    Returns the backend name ("none" when nothing was configured).
+    """
+    mode = os.environ.get("HW2_GL", "osmesa" if OSMESA_PREFIX else "none").lower()
+    if mode == "osmesa":
+        use_osmesa(OSMESA_PREFIX)
+    elif mode in ("egl", "glfw"):
+        os.environ["MUJOCO_GL"] = mode
+        if mode == "egl":
+            os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
+    return mode
+
+
+def use_osmesa(prefix: str) -> None:
     """Configure software GL. MUST be called BEFORE `import mujoco`.
 
     `LD_LIBRARY_PATH` alone is not sufficient: PyOpenGL resolves the library
@@ -40,6 +59,9 @@ def use_osmesa(prefix: str = OSMESA_PREFIX) -> None:
     import ctypes
     import ctypes.util
 
+    if not prefix:
+        raise RuntimeError("HW2_GL=osmesa needs HW2_OSMESA_PREFIX=<conda prefix "
+                           "with mesalib>; or set HW2_GL=egl / glfw")
     lib = os.path.join(prefix, "lib")
     os.environ["MUJOCO_GL"] = "osmesa"
     os.environ["PYOPENGL_PLATFORM"] = "osmesa"
@@ -177,26 +199,60 @@ def box_target_distance(env, state) -> Any:
     return jp.linalg.norm(state.info["target_pos"] - box_pos)
 
 
+def state_diagnostics_fn(env, spec: "EnvSpec"):
+    """Return a jittable f(state) -> dict of per-state diagnostics.
+
+    Everything that classifies an outcome comes from simulator ground truth
+    (`state.data`, `state.info`), not from the observation vector:
+      dist      box->target distance (simulator), the success quantity
+      dist_obs  the same distance read from the observation (cross-check)
+      grip      gripper-site->box distance (obs; the env's `reached_box` uses it)
+      box_z     box height (world frame)
+      contact   left / right finger pad touching the box (MJX contact list)
+      nonfinite any NaN/inf in qpos, qvel or obs
+    """
+    import jax.numpy as jp
+
+    lo, hi = spec.target_rel_slice
+    blo, bhi = spec.box_rel_slice
+    box_geom = env._mj_model.geom("box").id
+    lf, rf = env._left_finger_geom, env._right_finger_geom
+
+    # The pinned playground commit has no collision helper, so read MJX's
+    # contact list directly. In this MJX version it is a compacted list of the
+    # ACTIVE contacts (unused slots carry geom id -1), each with its geom pair
+    # and signed distance; dist < 0 means the geoms touch/penetrate. Whether
+    # this detects grasps is validated empirically (stage2b_failure.py checks
+    # that successful pick-and-place episodes show finger-box contact).
+    def colliding(d, g1, g2):
+        g = d.contact.geom
+        hit = ((g[:, 0] == g1) & (g[:, 1] == g2)) | ((g[:, 0] == g2) & (g[:, 1] == g1))
+        return jp.any(hit & (d.contact.dist < 0))
+
+    def f(state):
+        d = state.data
+        box = d.xpos[env._obj_body]
+        return {
+            "dist": jp.linalg.norm(state.info["target_pos"] - box),
+            "dist_obs": jp.linalg.norm(state.obs[lo:hi]),
+            "grip": jp.linalg.norm(state.obs[blo:bhi]),
+            "box_z": box[2],
+            "contact_l": colliding(d, box_geom, lf),
+            "contact_r": colliding(d, box_geom, rf),
+            "nonfinite": ~(jp.isfinite(d.qpos).all() & jp.isfinite(d.qvel).all()
+                           & jp.isfinite(state.obs).all()),
+        }
+    return f
+
+
 def success_from_distances(dists: np.ndarray,
                            radius: float = SUCCESS_RADIUS,
                            hold: int = SUCCESS_HOLD) -> np.ndarray:
-    """Per-episode success from a (n_episodes, T) array of box->target distances.
-
-    Success == `hold` consecutive steps with distance < `radius`.
-    """
-    dists = np.asarray(dists)
-    if dists.ndim == 1:
-        dists = dists[None, :]
-    inside = (dists < radius).astype(np.int32)
-    n, T = inside.shape
-    if hold <= 1:
-        return inside.any(1)
-    # Longest run of 1s per row >= hold, via cumulative-sum over a sliding window.
-    csum = np.concatenate([np.zeros((n, 1), np.int32), np.cumsum(inside, 1)], 1)
-    if T < hold:
-        return np.zeros((n,), dtype=bool)
-    win = csum[:, hold:] - csum[:, :-hold]      # (n, T-hold+1) sums of each window
-    return (win >= hold).any(1)
+    """DEPRECATED protocol-v1 criterion (ignores termination); use
+    hw2.metrics.episode_metrics. Kept so old notebooks still import."""
+    from hw2.metrics import legacy_success
+    d = np.asarray(dists)
+    return legacy_success(d[None] if d.ndim == 1 else d, radius, hold)
 
 
 # --------------------------------------------------------------------------
@@ -226,7 +282,8 @@ def ensure_ffmpeg():
         src = imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
         return None
-    bindir = os.path.join(os.environ.get("PROJ", os.path.expanduser("~")), ".bin")
+    import tempfile
+    bindir = os.path.join(tempfile.gettempdir(), f"hw2_ffmpeg_{os.getuid()}")
     os.makedirs(bindir, exist_ok=True)
     link = os.path.join(bindir, "ffmpeg")
     if not os.path.exists(link):

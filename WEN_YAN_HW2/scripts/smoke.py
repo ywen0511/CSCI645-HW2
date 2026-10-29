@@ -1,6 +1,7 @@
 """GPU smoke test: JAX-CUDA + Torch-CUDA + OSMesa rendering in ONE process."""
 import os, sys, time
 import numpy as np
+import common as CM
 
 import jax
 print("jax backend:", jax.default_backend(), "devices:", jax.devices())
@@ -15,7 +16,7 @@ torch.cuda.synchronize()
 print("torch matmul ok, mean=", float((x @ x).mean()))
 
 from hw2 import envs as E
-E.use_osmesa()                      # before any mujoco import
+E.configure_rendering()                      # before any mujoco import
 
 env = E.make_env(impl="jax")
 spec = E.describe_env(env)
@@ -52,7 +53,7 @@ t0 = time.time()
 frames = env.render(traj[::5], height=240, width=320)
 print(f"rendered {len(frames)} frames in {time.time()-t0:.1f}s shape={np.asarray(frames[0]).shape}")
 import imageio.v3 as iio
-out = os.path.join(os.environ["PROJ"], "results", "smoke_frame.png")
+out = os.path.join(str(CM.RUNS), "smoke_frame.png")
 os.makedirs(os.path.dirname(out), exist_ok=True)
 iio.imwrite(out, np.asarray(frames[0]))
 print("wrote", out)

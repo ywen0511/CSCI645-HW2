@@ -1,0 +1,173 @@
+{
+  "protocol": "v2",
+  "note": "diagnostic runs, separate from the headline evaluation; per-run contact/lift fractions omitted (computed before the reset-state fix; see results/eval for corrected values)",
+  "d3_new_teacher_vs_stored_mae": 0.35105761885643005,
+  "act_clean_n100_s0": {
+    "d2_train_inits_ensemble": {
+      "n_success": 38,
+      "n_episodes": 100,
+      "success_rate": 0.38,
+      "min_dist_mean": 0.21601457230048254
+    },
+    "d2_train_inits_replan1": {
+      "n_success": 38,
+      "n_episodes": 100,
+      "success_rate": 0.38,
+      "min_dist_mean": 0.2058953712694347
+    },
+    "d2_test_inits_ensemble": {
+      "n_success": 27,
+      "n_episodes": 100,
+      "success_rate": 0.27,
+      "min_dist_mean": 0.242838323272299
+    },
+    "d2_test_inits_replan1": {
+      "n_success": 35,
+      "n_episodes": 100,
+      "success_rate": 0.35,
+      "min_dist_mean": 0.1875271889870055
+    },
+    "d3_train_states_mae": 0.03099403902888298,
+    "d3_train_states_mae_in_action_std": 0.11881137639284134,
+    "d3_teacher_visited_mae": 0.07256091386079788,
+    "d3_student_visited_mae": 0.6529759168624878,
+    "d3_ratio_student_over_teacher_visited": 8.99900348712763,
+    "d4_ensemble": {
+      "n_success": 26,
+      "n_episodes": 100,
+      "success_rate": 0.26
+    },
+    "d4_replan1": {
+      "n_success": 33,
+      "n_episodes": 100,
+      "success_rate": 0.33
+    },
+    "d4_ensemble_oldest": {
+      "n_success": 26,
+      "n_episodes": 100,
+      "success_rate": 0.26
+    },
+    "d4_chunk_full": {
+      "n_success": 10,
+      "n_episodes": 100,
+      "success_rate": 0.1
+    },
+    "d4_chunk5": {
+      "n_success": 25,
+      "n_episodes": 100,
+      "success_rate": 0.25
+    }
+  },
+  "act_clean_n100_s1": {
+    "d2_train_inits_ensemble": {
+      "n_success": 32,
+      "n_episodes": 100,
+      "success_rate": 0.32,
+      "min_dist_mean": 0.2542701371537987
+    },
+    "d2_train_inits_replan1": {
+      "n_success": 35,
+      "n_episodes": 100,
+      "success_rate": 0.35,
+      "min_dist_mean": 0.196994556998834
+    },
+    "d2_test_inits_ensemble": {
+      "n_success": 21,
+      "n_episodes": 100,
+      "success_rate": 0.21,
+      "min_dist_mean": 0.2586490414571017
+    },
+    "d2_test_inits_replan1": {
+      "n_success": 34,
+      "n_episodes": 100,
+      "success_rate": 0.34,
+      "min_dist_mean": 0.20380942429241258
+    },
+    "d3_train_states_mae": 0.03135594353079796,
+    "d3_train_states_mae_in_action_std": 0.12107088416814804,
+    "d3_teacher_visited_mae": 0.0731457769870758,
+    "d3_student_visited_mae": 0.6514020562171936,
+    "d3_ratio_student_over_teacher_visited": 8.905531980777106,
+    "d4_ensemble": {
+      "n_success": 22,
+      "n_episodes": 100,
+      "success_rate": 0.22
+    },
+    "d4_replan1": {
+      "n_success": 32,
+      "n_episodes": 100,
+      "success_rate": 0.32
+    },
+    "d4_ensemble_oldest": {
+      "n_success": 18,
+      "n_episodes": 100,
+      "success_rate": 0.18
+    },
+    "d4_chunk_full": {
+      "n_success": 6,
+      "n_episodes": 100,
+      "success_rate": 0.06
+    },
+    "d4_chunk5": {
+      "n_success": 25,
+      "n_episodes": 100,
+      "success_rate": 0.25
+    }
+  },
+  "act_clean_n100_s2": {
+    "d2_train_inits_ensemble": {
+      "n_success": 27,
+      "n_episodes": 100,
+      "success_rate": 0.27,
+      "min_dist_mean": 0.24156393694574946
+    },
+    "d2_train_inits_replan1": {
+      "n_success": 33,
+      "n_episodes": 100,
+      "success_rate": 0.33,
+      "min_dist_mean": 0.22056657220469789
+    },
+    "d2_test_inits_ensemble": {
+      "n_success": 28,
+      "n_episodes": 100,
+      "success_rate": 0.28,
+      "min_dist_mean": 0.23492995836772024
+    },
+    "d2_test_inits_replan1": {
+      "n_success": 31,
+      "n_episodes": 100,
+      "success_rate": 0.31,
+      "min_dist_mean": 0.21765267469570973
+    },
+    "d3_train_states_mae": 0.03170322626829147,
+    "d3_train_states_mae_in_action_std": 0.12233194708824158,
+    "d3_teacher_visited_mae": 0.07467980682849884,
+    "d3_student_visited_mae": 0.6623701453208923,
+    "d3_ratio_student_over_teacher_visited": 8.869467844795265,
+    "d4_ensemble": {
+      "n_success": 30,
+      "n_episodes": 100,
+      "success_rate": 0.3
+    },
+    "d4_replan1": {
+      "n_success": 34,
+      "n_episodes": 100,
+      "success_rate": 0.34
+    },
+    "d4_ensemble_oldest": {
+      "n_success": 28,
+      "n_episodes": 100,
+      "success_rate": 0.28
+    },
+    "d4_chunk_full": {
+      "n_success": 9,
+      "n_episodes": 100,
+      "success_rate": 0.09
+    },
+    "d4_chunk5": {
+      "n_success": 23,
+      "n_episodes": 100,
+      "success_rate": 0.23
+    }
+  }
+}

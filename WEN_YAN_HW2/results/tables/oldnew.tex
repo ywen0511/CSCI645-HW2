@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\scriptsize
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrrr}
+\toprule
+Condition & v1 (orig.) & v2 (new) & flips & v1 (orig.) & v2 (new) & flips \\
+\midrule
+ACT, 25 clean & 11.3 & 10.7 & 0 & 7.7 & 9.0 & 0 \\
+ACT, 50 clean & 14.7 & 14.0 & 0 & 19.3 & 18.7 & 0 \\
+ACT, 100 clean (baseline) & 26.0 & 24.3 & 0 & 32.0 & 35.3 & 0 \\
+ACT, 100 at $\sigma{=}0.5$ & 20.7 & 20.7 & 0 & 66.7 & 67.0 & 0 \\
+ACT, 100 at $\sigma{=}1$ & 0.0 & 0.0 & 0 & 1.0 & 1.0 & 0 \\
+ACT, 100 at $\sigma{=}2$ & 0.0 & 0.0 & 0 & 0.0 & 0.0 & 0 \\
+Flow matching, 100 clean (suppl.) & 22.0 & 24.3 & 0 & 12.0 & 14.0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Historical (protocol v1, original checkpoints) versus corrected (v2, retrained checkpoints) mean success (\%), ensembling then replanning. The checkpoints differ, so the difference is NOT attributable to the evaluation fix alone. `flips' counts, on the new rollouts, the episodes (of 300) whose outcome changes between the v1 and v2 rules -- the part that IS due to the fix.}
+\label{tab:oldnew}
+\end{table}

@@ -2,449 +2,549 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{adjustbox}
 \usepackage{amsmath,amssymb}
+\usepackage[T1]{fontenc}
 \usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
 \usepackage{xcolor}
+\usepackage{xurl}
+\setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.35em}
 \renewcommand{\arraystretch}{1.12}
 \input{numbers.tex}
 
 \title{\textbf{CSCI 645 Homework 2}\\[2pt]
 Imitation Learning for Robot Manipulation:\\
-How Demonstration Quantity and Quality Affect ACT on \texttt{PandaPickCube}}
+Demonstration Quantity and Quality for ACT on \texttt{PandaPickCube}}
 \author{Yan Wen}
-\date{\today}
+\date{Revised submission (protocol v2)}
 
 \begin{document}
 \maketitle
-\vspace{-2.2em}
+\vspace{-2.0em}
 
 \begin{center}
 \small
 \begin{tabular}{ll}
 \toprule
 Environment & \texttt{PandaPickCube} (MuJoCo Playground), state-based, \texttt{impl=jax} \\
-Teacher & PPO (Brax), \teacherSteps{} environment steps, \teacherNumEnvs{} parallel envs \\
-Student & ACT (action chunking transformer), chunk $H=\chunkSize$, \execMode{} inference \\
-Experiments & Option A (quantity: 25/50/100) and Option B (teacher action noise) \\
-Hardware & \gpuName{} on \hostName{} (single GPU per run) \\
+Teacher & PPO (Brax), \teacherSteps{} requested environment steps, seed 0 \\
+Student & ACT, chunk $H=\chunkSize$; two inference modes (ensembling / replan every step) \\
+Experiments & Option A (quantity 25/50/100) and Option B (teacher action noise $\sigma\in\{0.5,1,2\}$) \\
+Models & 7 conditions $\times$ 3 training seeds $=$ 21 students \\
+Evaluation & suite A: 100 held-out ICs; suite B: 100 fresh ICs, frozen protocol \\
+Hardware & \gpuName{} (\hostName) \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\section*{Summary of what was run}
-A PPO teacher was trained on \texttt{PandaPickCube}, evaluated on
-\nEvalPerSeed{} held-out initial conditions, and used to collect three
-demonstration pools (clean, and with Gaussian action noise
-$\sigma\!\in\!\{0.1,0.3\}$ injected \emph{during} environment interaction).
-ACT students were then trained on nested subsets of the clean pool
-(25/50/100 demonstrations) and on the two noisy pools, \nSeeds{} random seeds
-each, and every student was evaluated on the \emph{same} \nEvalPerSeed{}
-held-out initial conditions. A flow-matching policy was trained on the clean
-100-demonstration pool as an additional modern baseline. Table~\ref{tab:main}
-is the headline result; Table~\ref{tab:paired} gives paired statistics.
+\section*{Summary}
+\textbf{What was run.} A PPO teacher on \texttt{PandaPickCube}; 100 clean
+demonstrations (baseline) plus nested 25/50 subsets (Option A) and 100
+demonstrations collected with teacher action noise $\sigma\in\{0.5,1,2\}$
+(Option B); 21 ACT/flow-matching students; every student evaluated under two
+inference modes on the same 100 held-out initial conditions (ICs; suite A), and
+the moderate-noise comparison re-tested on 100 \emph{fresh} ICs under a protocol
+frozen and pushed before any outcome existed (suite B).
 
-\input{tables/main.tex}
+\textbf{Findings.} (1) Baseline ACT (100 clean demos) succeeds
+\actcleannOneZeroZeroEnsMean\% of the time with temporal ensembling and
+\actcleannOneZeroZeroRepMean\% when replanning every step, against a teacher at
+\tNewSuccZero\%. (2) More clean demonstrations help in both modes
+($25\rightarrow100$: \cmpQtyTwentyFiveHundredEnsDelta{} and
+\cmpQtyTwentyFiveHundredRepDelta{} percentage points). (3) Demonstrations from a
+\emph{noisier} teacher ($\sigma=0.5$, teacher success \tOldSuccZeroPtFive\%) give a
+much \emph{better} student when replanning (\actnoiseZeroPtFivenOneZeroZeroRepMean\%
+vs \actcleannOneZeroZeroRepMean\%, \cmpNoiseHalfRepDelta\,pp), but not under
+ensembling (\cmpNoiseHalfEnsDelta\,pp, CI includes 0); $\sigma\ge1$ destroys the
+task. (4) The frozen fresh-IC test \textbf{\freshVerdict} the replanning result:
+\freshactnoiseZeroPtFivenOneZeroZeroMean\% vs \freshactcleannOneZeroZeroMean\%
+($\Delta=\freshDelta$\,pp, IC 95\% CI [\freshLo, \freshHi]). (5) The dominant
+baseline failures are not reaching \emph{or} grasping alone: episodes split
+between never touching the box, touching it without lifting it, and lifting it
+without bringing it to the target.
+
+\textbf{Corrections in this revision.} The termination-aware protocol changed
+\emph{no} episode outcome in any of the 42 suite-A evaluations, so the original
+headline numbers were not inflated by post-termination states. The original
+failure analysis, however, was wrong: \histMislabelled{} of \histSucc{}
+successful baseline episodes had received failure labels (mostly ``never reached
+the box''), because the classifier tested the 12\,mm proximity before success.
+All checkpoints were retrained (the originals were lost); retrained per-seed
+results are close to the archived ones (Table~\ref{tab:oldnew}).
+
+\input{tables/required.tex}
 
 \section{Task and demonstration source}
 \textbf{Environment.} \texttt{PandaPickCube} from MuJoCo Playground: a Franka
-Emika Panda must bring a box to a target pose sampled uniformly in a
-$0.4\,\mathrm{m}\times0.4\,\mathrm{m}$ box in $x,y$ and $0.2$--$0.4\,\mathrm{m}$
-\emph{above} the table, so the task requires reaching, grasping and lifting.
-Observations are the \obsDim-dimensional state vector built by the
-environment's \texttt{\_get\_obs} (joint positions and velocities, gripper
-position and orientation, box orientation, box-relative and target-relative
-offsets, and control residuals). Actions are \actDim{}-dimensional joint-space
-deltas in $[-1,1]$, scaled by \texttt{action\_scale}$=0.04$ and added to the
-current control, which is then clipped to the actuator limits. Episodes are
-\epLen{} control steps at $\ctrlDt\,\mathrm{s}$ (3\,s of simulated time).
+Emika Panda must pick up a box and bring it to a target position sampled
+$0.2$--$0.4$\,m \emph{above} the box's start (and within $\pm0.2$\,m in $x,y$),
+so every success requires grasping and lifting. Observations are the
+\obsDim-dimensional state vector of the environment's \texttt{\_get\_obs}: joint
+positions (16) and velocities (15), gripper position (3) and orientation (6),
+box orientation (6), box$-$gripper offset (3), target$-$box offset (3),
+target$-$box orientation difference (6) and the control residual (8). Actions are
+\actDim-dimensional joint-space deltas in $[-1,1]$, scaled by
+\texttt{action\_scale}$=0.04$, added to the current control and clipped to the
+actuator limits. Episodes last \epLen{} control steps of $\ctrlDt$\,s.
 
-\textbf{Defining success.} This is a necessary design decision rather than a
-detail: the environment exposes \emph{no} success signal. Its \texttt{done}
-flag fires only when the box leaves the workspace or the simulation produces
-NaNs, so episodes otherwise always run the full \epLen{} steps, and the only
-task-progress field in \texttt{state.info} is \texttt{reached\_box} (gripper
-within $12\,\mathrm{mm}$ of the box). We therefore define success
-geometrically:
+\textbf{Defining success.} The environment exposes no success signal: its
+\texttt{done} flag fires only when the box leaves the workspace ($|x|,|y|,|z|>1$\,m
+or $z<0$) or the physics state contains NaN, and \texttt{state.info} only carries
+\texttt{reached\_box} (gripper site within 12\,mm of the box). We define:
 \begin{quote}
-an episode succeeds if the box comes within \successRadiusCm{}\,cm of the
-target and \emph{stays} there for \successHold{} consecutive control steps
-($\successHoldSec\,$s).
+an episode succeeds if the box is within 5\,cm of the target for 10 consecutive
+\emph{valid} control steps (0.2\,s), measured from the simulator's box and target
+positions.
 \end{quote}
-The hold requirement is what stops a fast fly-through of the target region from
-counting as a pick-and-place. Because the reported numbers depend on this
-threshold, we also report success as a function of the radius so the reader can
-see how much of the result is threshold-sensitivity (Section~\ref{sec:fail}).
+The hold stops a fly-through from counting. Reaching the hold once is a success
+even if the box later leaves the radius; such later violations are reported
+separately.
 
-\textbf{Teacher.} PPO from Brax, using the hyperparameters that MuJoCo
-Playground ships for this task (\texttt{manipulation\_params.brax\_ppo\_config}):
-\teacherNumEnvs{} parallel environments, learning rate $10^{-3}$, discount
-$0.97$, entropy cost $0.02$, observation normalisation on, policy MLP
-$(32,32,32,32)$ and value MLP $(256,256,256,256,256)$. \emph{Deviation:} we
-trained for \teacherSteps{} environment steps instead of the shipped
-$20{,}000{,}000$, because at 20\,M the policy had not yet become a useful
-demonstrator. Figure~\ref{fig:ppo} shows the learning curve, from which the
-reader can see what 20\,M would have given. Training took
-\teacherWallMin{} minutes on one \gpuName{}. Demonstrations are recorded from
-the \emph{deterministic} (mean) action of the final policy.
+\textbf{Termination-aware evaluation (protocol v2).} The raw environment has no
+auto-reset, so a batched rollout keeps stepping episodes whose box has already
+left the workspace. The original submission (protocol v1) scored success over
+the whole 150-step trace, including those post-termination states, and read the
+distance from the observation. Protocol v2, used for every number in this
+report, treats the first terminating transition's resulting state and all later
+states as invalid: they are excluded from success, distances, returns (only the
+terminating transition's own, finite, reward is counted) and every diagnostic;
+non-finite states are never valid; a hold cannot span termination, an invalid
+state or another episode. Unit tests cover normal success, an insufficient hold,
+an apparent success that occurs only after termination, a valid success before a
+later termination, NaN termination and cross-episode accumulation
+(\texttt{tests/test\_metrics.py}). Per episode we save the reset keys, the valid
+length and terminal cause, the distance traces and every diagnostic, so all
+metrics can be recomputed without simulation. The observation-derived and
+simulator box--target distances agree to \obsSimDev\,m on valid states.
+
+\textbf{Teacher.} PPO from Brax with the hyperparameters MuJoCo Playground ships
+for this task (\texttt{manipulation\_params.brax\_ppo\_config}: 2048 parallel
+environments, learning rate $10^{-3}$, discount $0.97$, entropy cost $0.02$,
+observation normalisation, policy MLP $4\times32$, value MLP $5\times256$),
+trained for \teacherSteps{} requested environment steps (brax ran
+\teacherStepsReached) instead of the shipped 20\,M, which was not enough for a
+useful demonstrator in the original run. Demonstrations use the
+\emph{deterministic} policy action.
+
+\textbf{Provenance of the teacher and the data.} The demonstration datasets in
+\texttt{data/} were collected by the \emph{original} teacher, whose checkpoint was
+not recoverable. They are reused unchanged (SHA-256 recorded per model). The
+teacher was \emph{retrained} with the same configuration and seed
+(\teacherWallMin{} minutes on one GPU); the reloaded pickle reproduces the
+in-memory policy (maximum action difference \teacherReloadDev). The retrained teacher is a new artifact,
+\emph{not} the policy that generated the data: on the stored clean states its
+action differs from the stored action by \dataResidClean{} on average
+(per-dimension absolute difference; actions lie in $[-1,1]$). It is used only to
+report teacher success under protocol v2 and as the reference in one diagnostic.
+Table~\ref{tab:teacher} separates the original teacher's (archived) success, the
+retrained teacher's success, and the success labels stored in the datasets. The
+initial state of every stored episode matches a reset from its recorded
+collection key (maximum difference \dataResetDev).
+
+\input{tables/teacher.tex}
+
+\textbf{Filtering.} The clean dataset keeps successful episodes only, but the
+first 100 of the 512 collected all succeeded, so the filter removed nothing. The
+noisy datasets keep the first 100 episodes \emph{including failures}, because
+data quality is the independent variable. All stored success labels are
+unchanged under protocol v2 (recomputed from the stored valid states; 0
+disagreements in all six datasets).
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.62\linewidth]{figures/ppo_curve.png}
-\caption{PPO teacher learning curve. Shaded band is the across-episode standard
-deviation at each evaluation point.}
+\caption{PPO teacher learning curves: the retrained teacher (this revision) and
+the original teacher (archived log). Bands: across-episode standard deviation at
+each evaluation point.}
 \label{fig:ppo}
 \end{figure}
 
-\textbf{Teacher success and filtering.} On the \nEvalPerSeed{} held-out initial
-conditions the deterministic teacher succeeds
-\teacherSuccSigmaZeroPtZero\% of the time (mean return
-\teacherRetSigmaZeroPtZero). The clean demonstration pool
-\emph{is} filtered to successful episodes, so the baseline student learns only
-from successful behaviour; the noisy pools are deliberately \emph{not}
-filtered, because degraded data quality is the independent variable in
-Option~B. Table~\ref{tab:data} states this per dataset.
-
-\input{tables/data.tex}
-
 \section{Demonstration quality}
-The clean pool contains \datasigmaZeroEps{} episodes
-(\datasigmaZeroTrans{} transitions), with mean length
-$\datasigmaZeroLenMean \pm \datasigmaZeroLenStd$ control steps. Lengths are
-almost constant because the environment does not terminate on success --- every
-episode runs to the horizon --- so length carries little information here, which
-is itself worth noting when interpreting "trajectory length" statistics for this
-benchmark.
+\input{tables/data.tex}
+The baseline (clean) dataset has 100 episodes and \dataTransZero{} transitions;
+every episode runs the full \epLen{} steps (the environment never terminates on
+success) and all 100 succeed. The noisy datasets are shorter where the box was
+knocked out of the workspace (\dataTermZeroPtFive, \dataTermOne{} and
+\dataTermTwo{} episodes truncated at termination for $\sigma=0.5,1,2$) and contain
+\dataSuccZeroPtFive, \dataSuccOne{} and \dataSuccTwo{} successful episodes.
+Figure~\ref{fig:demos} shows box--target distance traces, coverage of initial
+conditions and the executed-action distribution of the clean dataset; the
+expert video is \texttt{videos/expert\_demo0\_success.mp4} and
+Figure~\ref{fig:frames} shows frames.
 
-Figure~\ref{fig:demos} inspects the data. The box-to-target distance traces show
-the characteristic shape of the teacher's behaviour: a reach phase, then a lift
-that brings the distance down, then a hold near the target. Coverage of initial
-conditions is uniform over the sampled region by construction, and the executed
-action distribution shows which joints the teacher actually drives.
-Figure~\ref{fig:frames} shows frames from expert rollouts.
+\textbf{Observations.} The teacher is one deterministic policy, so trajectories
+from nearby initial conditions are highly consistent and unimodal; the traces
+show a reach phase, a lift that drives the distance down, and a hold. Initial box
+and target positions cover the sampled square uniformly by construction (100
+draws). One environment quirk matters for the analysis: the reset observation is
+produced before MJX computes body positions, so in the first stored observation
+of every episode the gripper and box positions read as zero (later
+observations are correct; the student sees the same quirk at test time). Plots
+and all position-based diagnostics therefore start at the first stepped state.
+Visible inefficiencies: the approach to the box is often curved rather
+than direct, and near the target the box keeps moving slightly instead of
+settling, which is what the hold requirement measures.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/demos.png}
-\caption{Clean demonstration pool: episode lengths, box-to-target distance
-traces, coverage of initial conditions, and the distribution of executed
-actions.}
+\caption{Clean demonstration dataset: episode lengths, box--target distance
+traces, initial box and target positions, and executed action distribution.}
 \label{fig:demos}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/demo_frames.png}
-\caption{Expert demonstrations, frames sampled uniformly in time. Full videos
-are in \texttt{videos/}.}
-\label{fig:frames}
-\end{figure}
-
-\textbf{Consistency, coverage and visible inefficiencies.} The teacher is a
-single deterministic policy, so trajectories starting from nearby initial
-conditions are highly consistent --- there is no multi-modality of the kind that
-motivates generative policies, which matters when interpreting the ACT-versus-
-flow-matching comparison later. The inefficiencies that \emph{are} visible are
-(i) the policy often approaches the box along a curved path rather than
-directly, and (ii) once near the target it dithers instead of settling, which is
-what the hold requirement in our success definition penalises.
-
 \section{Policy and training}
-We chose \textbf{ACT} (Action Chunking with Transformers). Inputs are the
-normalised \obsDim-dimensional state; outputs are a chunk of $H=\chunkSize$
-future actions (\actDim{} dimensions each), i.e. $\chunkSize\times\ctrlDt$
-seconds of open-loop action. The model is the transformer CVAE of the ACT paper:
-a posterior encoder sees the ground-truth action chunk and the observation and
-emits a style latent $z$; a transformer encoder-decoder with $H$ learned
-decoder queries maps $(z,\text{obs})$ to the chunk; the loss is an $L_1$
-reconstruction term on the chunk plus $\beta\,\mathrm{KL}$ with $\beta=10$. At
-test time $z$ is set to the prior mean. Padded chunk steps at the end of an
-episode are excluded from the loss by a mask.
+We use \textbf{ACT} (action chunking with transformers). Input: the standardised
+\obsDim-dimensional state. Output: a chunk of $H=\chunkSize$ future actions
+(\actDim{} each, i.e.\ 0.6\,s). Architecture: the transformer CVAE of the ACT
+paper with hidden width 256, feed-forward width 1024, 8 heads, 4 encoder and 6
+decoder layers, a 4-layer CVAE posterior encoder and a 32-dimensional latent
+(\nParamsAct\,M parameters). The posterior encoder sees the observation and the
+ground-truth chunk and emits $z$; the decoder maps $(z,\text{obs})$ through $H$
+learned queries to the chunk. Objective: masked $L_1$ on the chunk plus
+$10\cdot\mathrm{KL}$; at test time $z=0$. Chunks never cross an episode end
+(padded steps are masked).
 
-\textbf{Deviations from the reference implementation}, all deliberate: no
-ResNet image backbone (observations are state, so the conditioning token is a
-linear projection of the state vector); pre-layer-norm blocks with GELU instead
-of post-LN with ReLU; AdamW with linear warmup and cosine decay; bf16 autocast;
-and an exponential moving average of the weights, which is what we evaluate.
-Our implementation is self-contained in \texttt{code/hw2/policies/act.py} (no
-third-party library is vendored).
+\textbf{Deviations from the reference implementation:} no image backbone (state
+input, linear projection), pre-layer-norm GELU blocks, AdamW with warmup and
+cosine decay, bf16 autocast, gradient clipping and an EMA of the weights, which
+is what we evaluate. The code (\texttt{code/hw2/policies/act.py}) is a
+re-implementation; nothing is vendored.
 
-\textbf{Training configuration.} \trainSteps{} gradient steps, batch size
-\batchSize, learning rate \learnRate{} (cosine), weight decay $10^{-4}$,
-gradient-norm clip $1.0$, EMA decay $0.999$,
-\resquantityactNOneZeroZeroSZeroPtZeroParams\,M parameters. Observations and
-actions are standardised per dimension; crucially the statistics are fit on the
-subset actually used by each condition, never on the full pool, so the 25-demo
-condition cannot borrow information from the 100-demo pool. Seeds
-$\{0,1,2\}$ control model init, data shuffling and the CVAE sampling.
-Figure~\ref{fig:loss} shows the loss curves for all ACT runs.
+\textbf{Training.} \trainSteps{} steps, batch \batchSize, learning rate
+\learnRate{} with 200 warmup steps and cosine decay to 5\%, weight decay
+$10^{-4}$, AdamW $\beta=(0.9,0.95)$, gradient-norm clip 1, EMA decay 0.999.
+Observations and actions are standardised per dimension with statistics fitted
+on exactly the episodes each model trains on. Training seeds $\{0,1,2\}$ set
+initialisation, data order and CVAE sampling. One ACT model took
+\trainMinAct{} minutes on an A100 (eight models trained concurrently on four
+GPUs); a flow-matching model \trainMinFlow{} minutes. Figure~\ref{fig:loss} shows
+all 21 loss curves.
+
+\textbf{Inference and action execution.} Predicted chunks are de-standardised and
+clipped to $[-1,1]$. Two modes are evaluated for every model: \emph{temporal
+ensembling} (the historical headline protocol: the policy is queried every step
+and all chunk entries for the current step are averaged with weights
+$\exp(-0.01\cdot\text{age})$, so the newest prediction weighs most; ACT's
+reference weights the oldest most, which we evaluate as a diagnostic) and
+\emph{replan every step} (a new chunk every step, only its first action executed).
+Neither weighting, normalisation, clipping nor the success threshold was changed
+relative to the original submission.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/loss.png}
-\caption{ACT training loss (left: total objective; right: action $L_1$) for
-every condition and seed.}
+\caption{Training loss of all 21 models (ACT: total loss and action $L_1$;
+flow matching: velocity MSE).}
 \label{fig:loss}
 \end{figure}
 
-\textbf{Inference.} We use ACT's temporal ensembling (\execMode): the policy is
-queried at every control step and all chunk predictions covering the current
-timestep are averaged with exponential weights. Actions are de-standardised and
-clipped to $[-1,1]$ before being passed to the simulator.
-
 \section{Baseline results}
-The baseline (100 clean demonstrations) reaches
-\resquantityactNOneZeroZeroSZeroPtZeroMean\%
-[\resquantityactNOneZeroZeroSZeroPtZeroLo,
-\resquantityactNOneZeroZeroSZeroPtZeroHi] success over
-\resquantityactNOneZeroZeroSZeroPtZeroNEval{} evaluation episodes
-(\nSeeds{} seeds $\times$ \nEvalPerSeed{} held-out initial conditions, Wilson
-95\% interval), against a teacher success of
-\teacherSuccSigmaZeroPtZero\%. Evaluation never replays a training trajectory:
-the evaluation seeds are a fixed set disjoint from the demonstration-collection
-seeds, and are identical across every condition in this report. Representative
-success and failure rollouts are in \texttt{videos/}.
+\label{sec:baseline}
+Table~\ref{tab:main} lists every model. The baseline (ACT, 100 clean
+demonstrations) succeeds on \actcleannOneZeroZeroEnsMean\% of the 100 held-out ICs
+with temporal ensembling (seeds \actcleannOneZeroZeroEnsSeedZero,
+\actcleannOneZeroZeroEnsSeedOne, \actcleannOneZeroZeroEnsSeedTwo\%; IC 95\% CI
+[\actcleannOneZeroZeroEnsLo, \actcleannOneZeroZeroEnsHi]) and
+\actcleannOneZeroZeroRepMean\% when replanning every step (seeds
+\actcleannOneZeroZeroRepSeedZero, \actcleannOneZeroZeroRepSeedOne,
+\actcleannOneZeroZeroRepSeedTwo\%; [\actcleannOneZeroZeroRepLo,
+\actcleannOneZeroZeroRepHi]). The retrained teacher succeeds on \tNewSuccZero/100
+of the same ICs. The evaluation ICs (\texttt{split(PRNGKey(7777),100)}) are
+disjoint from every demonstration-collection key; no training trajectory is
+replayed. Rollout videos (verified as described in Section~\ref{sec:fail}):
+\texttt{videos/student\_act\_clean\_n100\_s0\_replan1\_ep3\_success.mp4} and
+\texttt{\dots\_ep8\_failure\_lifted-the-box-never-within-target-radius.mp4};
+Figure~\ref{fig:frames} shows frames.
 
-\textbf{The gap between a \teacherSuccSigmaZeroPtZero\% teacher and a
-\resquantityactNOneZeroZeroSZeroPtZeroMean\% student is the main object of
-study in this report}, so Section~\ref{sec:fail} is devoted to establishing
-what causes it. We state up front that we checked the obvious explanations and
-they are not the cause: the stored data is faithful, the model fits it, and the
-student is accurate wherever the teacher goes.
+\textbf{Uncertainty.} Each condition has three trained models, and all of them
+are evaluated on the same 100 ICs, so the 300 episodes are not 300 independent
+trials: some ICs are hard for every seed. We therefore report the mean of the
+three per-seed rates with two intervals: the \emph{IC interval} resamples ICs
+with the trained models fixed (uncertainty about the IC distribution,
+conditional on these models), and the \emph{2-way interval} also resamples
+training seeds. With three seeds the latter is crude, and neither interval
+describes the full distribution over training seeds; the per-seed values are
+always shown. Contrasts between conditions are paired by IC; $p$-values are
+sign-flip tests of the per-IC difference of seed-averaged success, conditional on
+the models.
 
-\textbf{Inference mode.} ACT emits a chunk of \chunkSize{} actions, and how
-much of that chunk is executed before re-planning matters a great deal here
-(Table~\ref{tab:modes}). Executing the whole chunk open loop gives
-\diagModeChunkFullSucc\%; ACT's temporal ensembling gives
-\diagModeEnsSucc\%; predicting a fresh chunk every control step and executing
-only its first action gives \diagModeChunkOneSucc\%, and more than doubles the
-fraction of episodes in which the gripper ever reaches the box
-(\diagModeChunkOneBox\% versus \diagModeEnsBox\%). We report temporal
-ensembling as the headline because it was the pre-specified choice (it is the
-ACT paper's default), and give the re-planning column alongside it for every
-condition rather than switching to the better mode after seeing test numbers.
-The ordering is informative in itself: on this task the value of action
-chunking is in \emph{training} the policy, not in executing chunks open loop.
+\textbf{Inference mode.} Replanning every step beats ensembling for the baseline
+by \modeactcleannOneZeroZeroDelta\,pp (IC CI [\modeactcleannOneZeroZeroLo,
+\modeactcleannOneZeroZeroHi]). Both modes were fixed in advance and are reported
+for every model; ensembling remains the historical headline mode. Executing
+chunks open loop is much worse (Table~\ref{tab:diag}).
 
-\input{tables/modes.tex}
-
-\section{Data ablation}
-\textbf{Option A --- quantity.} Students were trained on nested subsets of the
-same clean pool, so the 25-demo set is a strict subset of the 50-demo set,
-which is a strict subset of the 100-demo set; nothing else changes.
-Success rises from \resquantityactNTwoFiveSZeroPtZeroMean\% (25 demos) to
-\resquantityactNFiveZeroSZeroPtZeroMean\% (50) to
-\resquantityactNOneZeroZeroSZeroPtZeroMean\% (100); see
-Figure~\ref{fig:quantity}. The paired comparison $25\!\rightarrow\!100$ gives
-$\Delta=\cmpQtyTwentyFiveToHundredDelta$\%
-[\cmpQtyTwentyFiveToHundredLo, \cmpQtyTwentyFiveToHundredHi],
-McNemar $p=\cmpQtyTwentyFiveToHundredP$.
-
-\textbf{Option B --- teacher action noise.} Further pools were collected with
-Gaussian noise added to the teacher's action \emph{during} environment
-interaction, $a = \mathrm{clip}(\pi(s)+\varepsilon,-1,1)$ with
-$\varepsilon\sim\mathcal{N}(0,\sigma^2 I)$, applied before the environment's own
-\texttt{action\_scale} and actuator clipping. The stored action is the one
-actually executed. Dataset size is held at 100 episodes and the pools are
-\emph{not} filtered for success, so the independent variable is data quality.
-
-A first attempt at $\sigma\in\{0.1,0.3\}$ produced \emph{no} usable contrast:
-the teacher still succeeded \teacherSuccSigmaZeroPtOne\% and
-\teacherSuccSigmaZeroPtThree\% of the time, because the noise is injected into a
-\emph{closed-loop} delta-action policy, which simply corrects for it at the next
-step. A quality ablation says nothing in a regime where quality has not actually
-degraded, so we extended the sweep to $\sigma\in\{0.5,1,2\}$, where teacher
-success falls to \teacherSuccSigmaZeroPtFive\%, \teacherSuccSigmaOnePtZero\% and
-\teacherSuccSigmaTwoPtZero\%.
-
-\textbf{The result is non-monotonic, and its sign depends on the inference
-mode.} Under the pre-specified headline mode (temporal ensembling), students
-trained on the noisy pools score \resnoiseactNOneZeroZeroSZeroPtFiveMean\%,
-\resnoiseactNOneZeroZeroSOnePtZeroMean\% and
-\resnoiseactNOneZeroZeroSTwoPtZeroMean\% against the clean baseline's
-\resquantityactNOneZeroZeroSZeroPtZeroMean\%, i.e.\ moderate noise is roughly
-neutral and heavy noise is catastrophic. Under re-planning every control step,
-the same $\sigma=0.5$ checkpoints reach
-\conenoiseactNOneZeroZeroSZeroPtFiveMean\% against the clean baseline's
-\conequantityactNOneZeroZeroSZeroPtZeroMean\% --- that is, demonstrations from a
-\emph{worse} teacher produce a substantially \emph{better} student
-($\Delta=\cmpCOneNoiseLowDelta$\%
-[\cmpCOneNoiseLowLo, \cmpCOneNoiseLowHi], $p=\cmpCOneNoiseLowP$), and the
-gripper reaches the box in \conenoiseactNOneZeroZeroSZeroPtFiveBox\% of episodes
-versus \conequantityactNOneZeroZeroSZeroPtZeroBox\%. Both comparisons appear in
-Table~\ref{tab:paired}.
-
-The mechanism is the one identified in Section~\ref{sec:fail}: the student's
-binding constraint is not the optimality of the demonstrated actions but the
-\emph{breadth of the state distribution} they cover, and perturbing the teacher
-during interaction is precisely what broadens it. At $\sigma=0.5$ the coverage
-gain outweighs the loss of demonstrator quality; by $\sigma=1$ the teacher
-succeeds only \teacherSuccSigmaOnePtZero\% of the time and the demonstrations no
-longer contain the task, so the student collapses. We note the confound
-explicitly: that condition changes demonstrator quality and state coverage at
-the same time, and the clean way to separate them --- inject noise for coverage
-but keep only the episodes that still succeed --- is the experiment we would run
-next. We also flag the obvious caveat that conclusions about demonstration
-quality here are mode-dependent, which is itself a reason to report both modes
-rather than one.
-
-\input{tables/paired.tex}
+\input{tables/main.tex}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.49\linewidth]{figures/quantity.png}
-\hfill
-\includegraphics[width=0.49\linewidth]{figures/noise.png}
-\caption{Left: effect of demonstration quantity (Option A). Right: effect of
-demonstration quality via teacher action noise (Option B). Error bars are
-Wilson 95\% intervals on the pooled episodes; small dots are individual seeds.}
-\label{fig:quantity}
-\label{fig:noise}
+\includegraphics[width=\linewidth]{figures/frames.png}
+\caption{Frames from the expert demonstration and the four verified student
+clips (baseline and $\sigma=0.5$, seed 0, replanning; one success and one failure
+each). Every 2nd control step is rendered; $t$ is the control step.}
+\label{fig:frames}
 \end{figure}
 
-\textbf{Additional modern baseline.} Because the assignment's two named methods
-date from 2023, we also trained a flow-matching policy (rectified/conditional
-flow matching with a DiT-style adaLN-Zero denoiser over the action chunk, the
-action representation used by recent VLA action experts such as $\pi_0$) on the
-same clean 100-demonstration pool. It reaches
-\resalgorithmflowNOneZeroZeroSZeroPtZeroMean\%
-[\resalgorithmflowNOneZeroZeroSZeroPtZeroLo,
-\resalgorithmflowNOneZeroZeroSZeroPtZeroHi], versus ACT's
-\resquantityactNOneZeroZeroSZeroPtZeroMean\%
-($\Delta=\cmpActToFlowDelta$\% [\cmpActToFlowLo, \cmpActToFlowHi],
-$p=\cmpActToFlowP$). This arm is supplementary; the required baseline and
-ablation arms all use ACT, as Part~3 requires a single fixed algorithm.
+\section{Data ablation}
+\textbf{Option A: quantity.} Students trained on nested prefixes (25 $\subset$ 50
+$\subset$ 100) of the same clean dataset, with normalisation fitted on each
+subset; nothing else changes. Success rises with quantity in both modes
+(Figure~\ref{fig:quantity}, Table~\ref{tab:contrasts}): ensembling
+\actcleannTwoFiveEnsMean{} $\rightarrow$ \actcleannFiveZeroEnsMean{} $\rightarrow$
+\actcleannOneZeroZeroEnsMean\%, replanning \actcleannTwoFiveRepMean{}
+$\rightarrow$ \actcleannFiveZeroRepMean{} $\rightarrow$
+\actcleannOneZeroZeroRepMean\%. $25\rightarrow100$ is
+\cmpQtyTwentyFiveHundredEnsDelta\,pp [\cmpQtyTwentyFiveHundredEnsLo,
+\cmpQtyTwentyFiveHundredEnsHi] and \cmpQtyTwentyFiveHundredRepDelta\,pp
+[\cmpQtyTwentyFiveHundredRepLo, \cmpQtyTwentyFiveHundredRepHi]; every seed
+improves. $25\rightarrow50$ is clear only when replanning
+(\cmpQtyTwentyFiveFiftyRepDelta\,pp vs \cmpQtyTwentyFiveFiftyEnsDelta\,pp).
+
+\textbf{Option B: teacher action noise.} Noise is added to the teacher's
+deterministic action \emph{during} environment interaction,
+$a=\mathrm{clip}(\pi(s)+\varepsilon,-1,1)$, $\varepsilon\sim\mathcal{N}(0,\sigma^2I)$,
+before the environment's action scaling and actuator clipping; the executed
+(noisy, clipped) action is stored with the observation it was chosen from.
+Dataset size is fixed at 100 episodes and failures are kept. A preliminary sweep
+at $\sigma\in\{0.1,0.3\}$ barely changed the original teacher (success
+\tOldSuccZeroPtOne\% and \tOldSuccZeroPtThree\%; the closed-loop delta-action
+policy corrects the noise at the next step), so the study uses
+$\sigma\in\{0.5,1,2\}$, where the original teacher succeeded
+\tOldSuccZeroPtFive\%, \tOldSuccOne\% and \tOldSuccTwo\% of the time (the
+retrained teacher: \tNewSuccZeroPtFive, \tNewSuccOne{} and \tNewSuccTwo/100). The
+datasets contain \dataSuccZeroPtFive, \dataSuccOne{} and \dataSuccTwo{}
+successful episodes.
+
+The result depends on the inference mode. With ensembling, $\sigma=0.5$ is
+indistinguishable from clean (\actnoiseZeroPtFivenOneZeroZeroEnsMean\% vs
+\actcleannOneZeroZeroEnsMean\%, \cmpNoiseHalfEnsDelta\,pp
+[\cmpNoiseHalfEnsLo, \cmpNoiseHalfEnsHi]). With replanning, the $\sigma=0.5$
+students reach \actnoiseZeroPtFivenOneZeroZeroRepMean\% against
+\actcleannOneZeroZeroRepMean\% (\cmpNoiseHalfRepDelta\,pp
+[\cmpNoiseHalfRepLo, \cmpNoiseHalfRepHi], all three seeds). At $\sigma\ge1$ the
+demonstrations no longer contain a successful pick-and-place and the students
+fail (\actnoiseOnenOneZeroZeroRepMean\% and \actnoiseTwonOneZeroZeroRepMean\%).
+
+\input{tables/contrasts.tex}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.49\linewidth]{figures/quantity.png}\hfill
+\includegraphics[width=0.49\linewidth]{figures/noise.png}
+\caption{Option A (left) and Option B (right). Lines: mean of three seeds with IC
+95\% intervals; dots: individual seeds; both inference modes. Right: teacher
+success at each $\sigma$ (retrained teacher, dashed; original teacher, crosses).}
+\label{fig:quantity}
+\end{figure}
+
+\textbf{Fresh-initialization confirmation (suite B).} Because the $\sigma=0.5$
+result was first seen on the same 100 ICs used throughout, we froze a
+confirmation protocol (\texttt{configs/fresh\_protocol.json}, committed and pushed
+on \freshFrozen{} before any evaluation): the six existing checkpoints (clean and
+$\sigma=0.5$, seeds 0--2), replanning, 100 fresh ICs from
+\texttt{PRNGKey(\freshBase)} (key hash \texttt{\freshSha}; no collision with any
+demonstration or suite-A key, nearest IC \freshNearest\,mm away in box/target
+position), a fixed analysis and the decision rule ``confirmed iff the IC 95\%
+CI of the contrast lies above 0''. Result (Table~\ref{tab:fresh},
+Figure~\ref{fig:fresh}): clean \freshactcleannOneZeroZeroMean\%, $\sigma=0.5$
+\freshactnoiseZeroPtFivenOneZeroZeroMean\%, $\Delta=\freshDelta$\,pp (IC CI
+[\freshLo, \freshHi], 2-way [\freshTwoLo, \freshTwoHi], sign-flip $p\freshP$;
+per seed \freshSeedDeltaZero, \freshSeedDeltaOne, \freshSeedDeltaTwo\,pp): the
+finding is \textbf{\freshVerdict} on unseen ICs. For continuity, the
+majority-vote McNemar test (an IC counts as solved if $\ge2$ of 3 seeds solve it,
+a different statistic from the mean difference) gives \freshMcB{} vs \freshMcC{}
+discordant ICs, $p\freshMcP$. The clean baseline scores clearly lower on the fresh ICs
+(\freshactcleannOneZeroZeroMean\%) than on the original ones
+(\actcleannOneZeroZeroRepMean\%; the IC intervals do not overlap), while the
+$\sigma=0.5$ students score the same on both
+(\freshactnoiseZeroPtFivenOneZeroZeroMean\% vs \actnoiseZeroPtFivenOneZeroZeroRepMean\%):
+the original 100 ICs were apparently easier than average for the clean students,
+which also means the suite-A baseline numbers are somewhat optimistic. Three
+training seeds limit what can be said about other seeds.
+
+\input{tables/fresh.tex}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\linewidth]{figures/fresh.png}\hfill
+\includegraphics[width=0.45\linewidth]{figures/algorithms.png}
+\caption{Left: suite B, the frozen fresh-IC confirmation (bars: mean, IC 95\%
+CI; dots: seeds). Right: supplementary flow-matching arm versus ACT.}
+\label{fig:fresh}
+\end{figure}
+
+\textbf{What the noise result does and does not show.} Moderate noise changes
+two things at once: the actions are worse (the teacher at $\sigma=0.5$ fails
+about a third of the time) and the visited states are more varied (perturbed
+trajectories, including recoveries from perturbations). We did not run an
+experiment that separates the two, e.g.\ noisy collection keeping only successful
+episodes, or noise injected during collection but the clean action stored as the
+label (DART-style). The result is consistent with the covariate-shift account in
+Section~\ref{sec:fail}, but that is a hypothesis, not an isolated mechanism.
+
+\textbf{Supplementary: flow matching.} A flow-matching policy (DiT/adaLN-Zero
+denoiser over the action chunk, \nParamsFlow\,M parameters) on the same 100 clean
+demos ties ACT under ensembling (\flowcleannOneZeroZeroEnsMean\% vs
+\actcleannOneZeroZeroEnsMean\%) and is worse when replanning
+(\flowcleannOneZeroZeroRepMean\%, \cmpActFlowRepDelta\,pp), plausibly because
+resampling a fresh stochastic chunk every step makes consecutive actions
+inconsistent. This arm is supplementary; the required baseline and both
+ablations use ACT only.
+
+\textbf{Historical versus corrected results.} Table~\ref{tab:oldnew} compares the
+original submission's numbers (protocol v1, original checkpoints) with this
+revision (v2, retrained checkpoints). The two differ by a few points per
+condition, and the conclusions are unchanged. Because the checkpoints differ,
+those differences are not attributable to the evaluation fix. What \emph{is}
+attributable to it is measured directly: re-scoring the new rollouts with the v1
+rule changes zero outcomes in all 42 evaluations, because terminated episodes
+had never re-entered the success region after termination.
+
+\input{tables/oldnew.tex}
 
 \section{Failure analysis}
 \label{sec:fail}
-We localised the teacher--student gap with four checks, reported here in the
-order that rules out the cheapest explanations first.
+\textbf{Correcting the original analysis.} The original analysis of the baseline
+(seed 0, ensembling) reported \histSucc{} successes but labelled only
+\histLabelled{} episodes ``success'' and \histNever{} ``never reached the box'',
+with only \histReached{} episodes inside the 12\,mm \texttt{reached\_box}
+radius. Its classifier tested termination and the 12\,mm threshold
+\emph{before} success, so \histMislabelled{} successful episodes received
+failure labels. The 12\,mm gripper-site-to-box-centre distance is also not
+evidence of reaching: among all \valN{} successful episodes in this revision
+(teacher and students), every one shows finger--box contact and lifts the box by
+at least \valMinLiftCm\,cm, yet only \valTwelve\% come within 12\,mm (median
+closest approach \valGripMedMm\,mm, maximum \valGripMaxMm\,mm).
 
-\textbf{1. The demonstrations are faithfully recorded.} Replaying each stored
-action sequence from the initial condition it was collected from reproduces the
-stored observations: the reset state matches to \diagResetDev{} and the
-deviation after one step is \diagReplayStepOneDev. The deviation then grows over
-the episode, but that is chaotic amplification of floating-point noise in a
-contact-rich simulation (a single-environment replay and a 512-environment
-batched rollout do not execute bit-identical kernels), not a misalignment: a
-misaligned pairing would be wrong at the first step. So the
-(observation, action) pairing and the seeding are correct.
+\textbf{Taxonomy.} Each episode now receives exactly one label, decided in a
+fixed order on valid states only: success; terminated early; never touched the
+box (no finger-pad/box contact in MJX's contact list); touched but never lifted
+it (box never $\ge2$\,cm above its resting height); lifted but never within 5\,cm
+of the target; within 5\,cm but held $<10$ steps. The thresholds were checked
+against teacher and student trajectories as above and against the videos.
+Counts sum to the number of failures (Table~\ref{tab:taxonomy},
+Figure~\ref{fig:failure}). For the baseline with ensembling, the
+\taxactcleannOneZeroZeroEnsFail{} failures are: never touched
+\taxactcleannOneZeroZeroEnsNoTouch, touched but not lifted
+\taxactcleannOneZeroZeroEnsNoLift, lifted but never near the target
+\taxactcleannOneZeroZeroEnsLiftedFar, too short a hold
+\taxactcleannOneZeroZeroEnsShortHold{} and terminated
+\taxactcleannOneZeroZeroEnsTerm. So the student fails at every stage: it often
+does not get the fingers onto the box, often does not achieve a grasp that
+lifts it, and sometimes lifts it but does not carry it to the target. The
+$\sigma=0.5$ students with replanning almost never miss the box
+(\taxactnoiseZeroPtFivenOneZeroZeroRepNoTouch{} of 300) and fail mainly after
+contact (\taxactnoiseZeroPtFivenOneZeroZeroRepNoLift{} not lifted,
+\taxactnoiseZeroPtFivenOneZeroZeroRepLiftedFar{} lifted but far).
 
-\textbf{2. The model fits the data.} Final training action $L_1$ is
-\diagMaeTrainStd{} action standard deviations, and the one-step action error on
-training states is \diagMaeTrainRaw{} in raw action units. This is not
-underfitting.
-
-\textbf{3. The failure is covariate shift, not generalisation of the action
-map.} Evaluated at the states the \emph{teacher} visits, the student's action
-error is \diagMaeTeacherRaw{} --- essentially the same as on its own training
-states, so the learned action map generalises fine across initial conditions.
-Evaluated at the states the \emph{student itself} visits, the error is
-\diagMaeStudentRaw, a factor of \diagMaeRatio{} worse. The student is accurate
-everywhere the teacher goes and badly wrong as soon as it leaves that
-distribution. Consistently, evaluating on the initial conditions the
-demonstrations were collected from gives only \diagTrainInitSucc\% (versus
-\diagTestInitSucc\% on held-out ones): the student cannot reliably reproduce
-trajectories whose own starting states it was trained on, so the problem is
-closed-loop execution rather than memorisation or initial-condition coverage.
-
-\textbf{4. Where the episodes actually die.} Figure~\ref{fig:failure} splits the
-per-episode diagnostics by outcome, classified by a mutually exclusive taxonomy
-computed from the per-episode diagnostics. Of \failNFail{} failures out of
-\failNEval{} evaluation episodes, the modal class is
-\textbf{``\failTopLabel''} with \failTopCount{} episodes (\failTopShare\% of all
-failures); the remainder are \failOtherList. In other words the dominant
-failure is \emph{not} a grasp or transport failure but a \textbf{reaching}
-failure: in most failed episodes the gripper never comes within
-$12\,\mathrm{mm}$ of the box at all (the gripper reaches the box in only
-\failReachedBox\% of episodes), so the policy never gets far enough to attempt
-a lift. That is notable because the box position \emph{relative to the gripper}
-is given directly in the observation, so this is a servoing behaviour the
-student fits accurately on-distribution and still fails to execute --- the
-signature of drift rather than of a missing input.
-
-Success is also threshold-sensitive, which is why we report the sweep: it rises
-from \failSuccRadiusZeroPtZeroThree\% at a $3\,$cm tolerance to
-\failSuccRadiusZeroPtZeroFive\% at our \successRadiusCm\,cm criterion and
-saturates at \failSuccRadiusZeroPtOne\% by $10\,$cm, so a modest number of
-episodes end just outside the tolerance while most end far from it.
+\input{tables/taxonomy.tex}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/failure.png}
-\caption{Failure analysis for the baseline student: distance traces split by
-outcome, distribution of closest approach to the target, and the failure
-taxonomy.}
+\caption{Left: outcome categories, pooled over three seeds $\times$ 100 ICs.
+Right: box--target distance of the baseline (replanning) over valid states,
+median and interquartile band, by outcome.}
 \label{fig:failure}
 \end{figure}
 
-\textbf{Why this is the expected failure, and what it implies for the
-ablations.} This is the compounding-error argument for behaviour cloning in its
-textbook form: the student is trained only on the teacher's state distribution,
-and the grasp is precisely the point where a small action error moves the system
-into a state the teacher never demonstrates (box nudged, fingers misaligned),
-from which there is no corrective behaviour in the data to imitate. Action
-chunking bounds how fast error compounds \emph{within} a chunk, which is why
-re-planning every step beats executing chunks open loop, but it cannot supply a
-recovery behaviour that the demonstrations do not contain.
+\textbf{Diagnostics (separate runs, Table~\ref{tab:diag}).} (i) The student
+fits its data: the one-step action error on the stored training states is
+\diagMaeTrainZero--\diagMaeTrainTwo{} across seeds (action units; actions lie in
+$[-1,1]$). (ii) Evaluated against the retrained teacher, the error is
+\diagMaeTeacherZero{} on states the teacher visits and \diagMaeStudentZero{} on
+states the student visits, about \diagMaeRatioZero$\times$ larger. The reference
+here is the retrained teacher, which itself differs from the stored actions by
+\diagTeacherFloor{} on the training states, so only the comparison between the
+two state distributions is meaningful, not the absolute values. A low average
+error on teacher states also does not rule out small, control-sensitive errors
+at critical moments such as closing the gripper. (iii) The student is only
+slightly better on the ICs its demonstrations came from than on held-out ICs
+(ensembling \diagTrainEnsZero/\diagTestEnsZero,
+\diagTrainEnsOne/\diagTestEnsOne, \diagTrainEnsTwo/\diagTestEnsTwo{} successes per
+seed), so the gap to the teacher is not a matter of unseen initial
+conditions. (iv) Inference: executing whole chunks open loop is worst;
+ACT-reference ensemble weighting (oldest prediction weighted most) is no better
+than the historical weighting; replanning is best.
 
-It also explains the shape of both ablations. More of the same on-distribution
-demonstrations attacks coverage of \emph{initial} conditions, which
-diagnostic~3 shows is not the binding constraint --- consistent with the modest
-quantity effect we measure. And it explains the most interesting result in the
-quality ablation: at $\sigma=0.5$ the demonstrations come from a
-\teacherSuccSigmaZeroPtFive\% teacher rather than a
-\teacherSuccSigmaZeroPtZero\% one, yet the student is not correspondingly worse
-and reaches the box \emph{more} often, because perturbing the teacher during
-interaction is exactly what broadens the state distribution the student is
-trained on. Degrading the demonstrator and broadening coverage are confounded in
-that condition, and the two effects push in opposite directions; separating them
-(noise injected for coverage while keeping only successful episodes) is the
-experiment we would run next.
+\input{tables/diag.tex}
+
+\textbf{Interpretation.} Together these point to compounding error under
+covariate shift, the standard behaviour-cloning failure: the policy is accurate
+where the teacher goes and drifts into states the demonstrations do not cover,
+where nothing teaches it to recover. Replanning every step limits how long an
+error persists, and noisy demonstrations add perturbed and recovering states to
+the data, which fits both of our main effects. This is the best-supported
+explanation, not a proven one: the diagnostics show the error grows off the
+teacher's distribution, not that coverage is the only cause, and the noise
+ablation does not separate coverage from action quality.
+
+\textbf{Determinism and the videos.} Batched GPU evaluation is not
+bit-reproducible: re-running the same 100-episode evaluation reproduces
+\videoAgreeMin--\videoAgreeMax{} of the 100 outcomes, so per-model success rates
+are reproducible to within a few episodes (the diagnostic re-runs in
+Table~\ref{tab:diag} show the same effect). The videos are therefore never named
+after a different run. Each clip comes from one batched 100-episode rollout,
+is labelled by that rollout's own outcome, and is accepted only if re-scoring
+the rendered states reproduces the label exactly.
 
 \section{Reproducibility and reflection}
-\textbf{Software.} Python \verpython, jax \verjax{} / jaxlib \verjaxlib{}
-(CUDA\,12), flax \verflax, brax \verbrax, mujoco \vermujoco, mujoco-mjx
-\vermujocomjx, \texttt{playground} \verplayground{} pinned at upstream commit
-\texttt{\playgroundSha}, torch \vertorch, numpy \vernumpy. Hardware:
-\gpuName{} on \hostName.
+\textbf{Software.} Python \verpython, jax/jaxlib \verjax{} (CUDA\,12), flax
+\verflax, brax \verbrax, mujoco and mujoco-mjx \vermujoco,
+\texttt{playground} \verplayground{} at commit \texttt{\playgroundSha} (assets:
+mujoco\_menagerie \texttt{\menagerieSha}), torch \vertorch, numpy \vernumpy.
+Hardware: \gpuName{}. Full pins: \texttt{configs/requirements.lock.txt}.
 
-\textbf{Two environment-specific issues worth recording.} (i) The cluster's GPU
-nodes ship no NVIDIA graphics userspace, so the EGL rendering path in the
-assignment's reference snippet cannot work; all rendering here goes through a
-software OSMesa stack configured from inside Python before \texttt{mujoco} is
-imported, because PyOpenGL resolves \texttt{libOSMesa} through
-\texttt{ctypes.util.find\_library}, which does not consult
-\texttt{LD\_LIBRARY\_PATH}. (ii) \texttt{brax} 0.14.2 still calls
-\texttt{jax.device\_put\_replicated}, which recent jax removed, so jax is
-pinned to \verjax{} and flax to \verflax; installing the newest of each gives
-an \texttt{AttributeError} only once PPO actually starts.
+\textbf{Commands.} \texttt{README.md} lists every step:
+\texttt{setup\_env.sh}; \texttt{stage1r\_teacher.py} (teacher, teacher evaluation,
+dataset audit); \texttt{stage2\_train.py} (21 models); \texttt{stage2\_eval.py
+-{}-suite A/B}; \texttt{stage2b\_failure.py}, \texttt{diag\_student.py},
+\texttt{diag\_replay.py}; \texttt{collect\_run\_artifacts.py};
+\texttt{stage3\_report.py} (CPU only, builds this PDF from committed results);
+\texttt{package.py}. Paths derive from the checkout. Training and evaluation
+resume only when a stored identity (dataset, configuration, code, checkpoint and
+evaluation-key hashes, protocol version) matches. Checkpoints are attached to the
+repository as release assets with SHA-256 hashes
+(\texttt{results/checkpoints\_manifest.json}). Seeds: students $\{0,1,2\}$;
+suite A \texttt{split(PRNGKey(7777),100)}; suite B
+\texttt{split(PRNGKey(\freshBase),100)}; demonstrations
+\texttt{split(PRNGKey(1000+$\lfloor1000\sigma\rfloor$),512)}; PPO seed 0.
 
-\textbf{Determinism.} MJX reproduces a given initial condition exactly
-(single-environment and batched resets agree to \diagResetDev), but a replay of
-the same action sequence diverges from the original rollout at a rate set by
-floating-point noise, because batched and unbatched rollouts do not execute
-identical kernels. Success labels are unaffected, but exact trajectory-level
-reproduction of a stored episode should not be expected.
+\textbf{Environment issues worth recording.} (i) Our GPU nodes have no NVIDIA
+graphics userspace, so the assignment's EGL snippet cannot run there; videos are
+rendered with software OSMesa from a side conda prefix
+(\texttt{HW2\_GL=osmesa}), configured before \texttt{mujoco} is imported because
+PyOpenGL resolves \texttt{libOSMesa} via \texttt{ctypes.util.find\_library}, which
+ignores \texttt{LD\_LIBRARY\_PATH}. (ii) brax 0.14.2 calls
+\texttt{jax.device\_put\_replicated}, removed in newer jax, hence the jax/flax
+pins. (iii) MJX reproduces an initial condition exactly (stored versus re-reset
+observations agree to \replayResetDev), but replaying a stored action sequence
+diverges chaotically at floating-point level (deviation $>10^{-3}$ first at steps
+\replayFirstBig{} in three episodes), because batched and single-environment
+rollouts do not run identical kernels. Videos are therefore rendered from the
+\emph{same} batched rollout that is scored, not from a single-environment replay.
 
-\textbf{Commands.} See \texttt{README.md}; the three stages are
-\texttt{stage1\_teacher\_collect.py} (teacher + datasets + expert videos),
-\texttt{stage2\_run\_conditions.py} (train + evaluate every condition), and
-\texttt{stage3\_report.py} (aggregate, figures, tables, this PDF). Seeds are
-\{0,1,2\} for students, \texttt{PRNGKey(7777)} split for the shared evaluation
-initial conditions, and \texttt{PRNGKey}$(1000+\lfloor 1000\sigma \rfloor)$ for
-demonstration collection.
+\textbf{Runtime (measured).} Teacher: \teacherWallMin{} minutes of PPO on one
+A100. Students: \trainMinAct{} minutes per ACT model and \trainMinFlow{} per flow
+model, eight at a time on four A100s (about 15 minutes for all 21). Evaluation:
+about \evalSecMean{}\,s per model, mode and 100 ICs. The CPU-only report rebuild
+takes about a minute plus LaTeX.
 
-\textbf{What more compute or time would buy.} The clearest limitation is the
-teacher: our success criterion is strict and the PPO teacher is itself far from
-perfect, which compresses the dynamic range of every student comparison. With
-more time we would (i) train the teacher to a genuinely high success rate, or
-use a scripted expert, so that student scores are not bounded by a mediocre
-demonstrator, (ii) add a DAgger-style or noise-injected-recovery arm to attack
-the grasp-failure mode directly rather than only measuring it, and (iii) run
-more seeds, since even with paired evaluation the seed-to-seed spread
-(visible as dots in Figure~\ref{fig:quantity}) is comparable to some of the
-effects we are trying to resolve.
+\textbf{Limitations.} Three training seeds per condition; one task; one success
+definition (5\,cm, 10 steps); a retrained teacher that is not the
+data-collecting teacher, so teacher-referenced diagnostics are approximate;
+evaluation reproducible only to within a few episodes per model; and the noise
+ablation confounds action quality with state coverage.
+
+\textbf{With more data, compute or time.} (i) Separate coverage from quality:
+inject noise during collection but store the clean teacher action (DART), and
+collect noisy data keeping only successful episodes. (ii) Attack covariate shift
+directly with DAgger-style relabelling by the teacher. (iii) More training seeds
+and a deterministic evaluation mode (deterministic XLA/cuDNN kernels), so
+per-model numbers reproduce exactly. (iv) Check the conclusions on a second
+manipulation task and under other success radii.
 
 \input{tables/prov.tex}
 
@@ -453,30 +553,35 @@ effects we are trying to resolve.
 \item MuJoCo Playground: Zakka et al., \emph{MuJoCo Playground}, 2025,
 \url{https://arxiv.org/abs/2502.08844}; code
 \url{https://github.com/google-deepmind/mujoco_playground} (commit
-\texttt{\playgroundSha}). The environment, its PPO hyperparameters, and the
-random-action snippet in the assignment come from here.
+\texttt{\playgroundSha}). Environment, PPO hyperparameters and the random-action
+snippet of the assignment.
+\item MuJoCo Menagerie (Panda model): \url{https://github.com/google-deepmind/mujoco_menagerie}.
 \item ACT: Zhao et al., \emph{Learning Fine-Grained Bimanual Manipulation with
-Low-Cost Hardware}, RSS 2023, \url{https://arxiv.org/abs/2304.13705};
-reference implementation \url{https://github.com/tonyzhaozh/act}. Our ACT is a
-re-implementation following the paper, with the deviations listed in Section~3.
-\item Diffusion Policy (not used for the required arms, cited as the
-alternative the assignment names): Chi et al., RSS 2023,
-\url{https://arxiv.org/abs/2303.04137}.
-\item Flow matching (supplementary baseline): Lipman et al., ICLR 2023,
-\url{https://arxiv.org/abs/2210.02747}; Liu et al.,
-\url{https://arxiv.org/abs/2209.03003}; DiT backbone: Peebles and Xie,
-\url{https://arxiv.org/abs/2212.09748}; $\pi_0$ action expert: Black et al.,
-\url{https://arxiv.org/abs/2410.24164}.
-\item Brax (PPO implementation): Freeman et al.,
-\url{https://github.com/google/brax}.
-\item \textbf{LLM use.} An LLM (Claude) was used as a coding assistant: to
-write and debug the implementation and cluster-job scripts, to diagnose the
-OSMesa/EGL and jax/brax version problems described above, and to draft this
-report. All experimental numbers in this report are generated programmatically
-from the stored result files by \texttt{stage3\_report.py} (every quantity in
-the prose is a LaTeX macro computed from those files, not typed by hand), and
-the experiment design choices, the success criterion, and the interpretation
-were reviewed by the author.
+Low-Cost Hardware}, RSS 2023, \url{https://arxiv.org/abs/2304.13705}; reference
+implementation \url{https://github.com/tonyzhaozh/act}. Re-implemented with the
+deviations of Section~3.
+\item Diffusion Policy (the alternative the assignment names; not used): Chi et
+al., RSS 2023, \url{https://arxiv.org/abs/2303.04137}.
+\item Flow matching (supplementary arm): Lipman et al., ICLR 2023,
+\url{https://arxiv.org/abs/2210.02747}; Liu et al., ICLR 2023,
+\url{https://arxiv.org/abs/2209.03003}; DiT/adaLN-Zero: Peebles and Xie, ICCV
+2023, \url{https://arxiv.org/abs/2212.09748}.
+\item Brax (PPO): Freeman et al., \url{https://github.com/google/brax}.
+\item Covariate shift in behaviour cloning: Ross, Gordon and Bagnell, \emph{A
+Reduction of Imitation Learning and Structured Prediction to No-Regret Online
+Learning} (DAgger), AISTATS 2011; noise injection during demonstration: Laskey
+et al., \emph{DART}, CoRL 2017, \url{https://arxiv.org/abs/1703.09327}.
+\item \textbf{LLM use.} An LLM coding assistant (Anthropic's Claude, in Claude
+Code) wrote and debugged most of the implementation, the cluster job scripts
+and the evaluation and statistics code, diagnosed the OSMesa and jax/brax
+environment problems, and drafted this report, in both the original submission
+and this revision. In the revision it also audited the original code, found the
+termination and failure-labelling errors described in Section~\ref{sec:fail},
+implemented the fixes and tests, retrained and re-evaluated all models, and
+rewrote the report. Every number in this report is generated by
+\texttt{stage3\_report.py} from stored result files (each quantity in the prose
+is a LaTeX macro, not typed by hand). The author specified the assignment
+scope and the revision requirements and is responsible for the submission.
 \end{itemize}
 
 \end{document}

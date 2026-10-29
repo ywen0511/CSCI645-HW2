@@ -1,0 +1,286 @@
+{
+  "note": "checkpoints are not stored in git; download the bundles from the GitHub release named in README.md and extract them into $HW2_RUNS",
+  "checkpoints": [
+    {
+      "model": "act_clean_n25_s0",
+      "file": "conditions/act_clean_n25_s0/policy.pt",
+      "sha256": "126b8eaad6de1433c2418965ce321dc7ed5ca3cc7bc3ae975e80498ac0e3fb31",
+      "bytes": 101827869,
+      "train_identity_sha256": "7a537e167f0a7cba172363cff10753d48de6aaea8072f1f5b0775a305539d0dc",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n25_s1",
+      "file": "conditions/act_clean_n25_s1/policy.pt",
+      "sha256": "97f2913975a7c5439513fd86827db65fbf8bb43024899eb26320a05829418b40",
+      "bytes": 101827869,
+      "train_identity_sha256": "cb53eaacf87cf5b7afb8423351f88ee3aa3a6ce9960e413803d9d4862ea4919b",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n25_s2",
+      "file": "conditions/act_clean_n25_s2/policy.pt",
+      "sha256": "30892cc3083247f3445d04343cda70d22991fc4c75665a4e3e4d3bfaef63e4e0",
+      "bytes": 101827869,
+      "train_identity_sha256": "dd3fe4653d4619c5f391bccd4641ed02b090e1cb66ebc698c0ccb48088ac5631",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n50_s0",
+      "file": "conditions/act_clean_n50_s0/policy.pt",
+      "sha256": "80783d2e83f49fb8558e12e2a8fcf82c3be046a36f81bc46b939c8707b1a3565",
+      "bytes": 101827933,
+      "train_identity_sha256": "68cb922f4f2029cbd6eebd77704a7f6465559a05fbe12c5f1e6c86d50d9d2394",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n50_s1",
+      "file": "conditions/act_clean_n50_s1/policy.pt",
+      "sha256": "43a20e7e0f7c2f0f7755b78dce771bac6ff03a690e0545543b7621aafb11bf53",
+      "bytes": 101827933,
+      "train_identity_sha256": "16eed0344e164785771e0e47882f92cd614a62336deb0c195dcfff96d1e0d16c",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n50_s2",
+      "file": "conditions/act_clean_n50_s2/policy.pt",
+      "sha256": "d0a7551e4097f8f46aeedb3e80c49f3fe205e52b4ff7d5b63aef961efd9dcaa1",
+      "bytes": 101827933,
+      "train_identity_sha256": "565a8983e4df3a92ec49cc998bcb6a8d5350540e1d6865519bfa97d570b7d205",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n100_s0",
+      "file": "conditions/act_clean_n100_s0/policy.pt",
+      "sha256": "c19243c0b17afb8c9ebffdef869faf41054fa27a39103846cc890f5da5f2e7d2",
+      "bytes": 101827997,
+      "train_identity_sha256": "0cbd2a2333046e7d31bb85bd5cde67b8430413258c7c014beee65370f56a8b23",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n100_s1",
+      "file": "conditions/act_clean_n100_s1/policy.pt",
+      "sha256": "dc7b4047fac6fd38f187374bbb2b64985c7f4d7325b02d9888937235c5883c22",
+      "bytes": 101827997,
+      "train_identity_sha256": "b73dd48f9c6bbef670642c9521be83e1be94e812fba04d96b3b23c3d54df769b",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_clean_n100_s2",
+      "file": "conditions/act_clean_n100_s2/policy.pt",
+      "sha256": "0f121d8419e49e9de1907fb1befd0acbc197fd8e987f9958080ac312a0c5c470",
+      "bytes": 101827997,
+      "train_identity_sha256": "7953030f1c165b641f43764940633326eb4a1bd756349b82933298f80d83f3a5",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_act_quantity.tar"
+    },
+    {
+      "model": "act_noise0.5_n100_s0",
+      "file": "conditions/act_noise0.5_n100_s0/policy.pt",
+      "sha256": "0f8f78cf3990251aa76fcb9b3ae98340aff42239621111c91cc8ef53b761d5d8",
+      "bytes": 101827997,
+      "train_identity_sha256": "fa17d43459fe289dce5090033bc95cf587bcf01d30d0140e99de91939c652409",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.5.npz",
+      "dataset_sha256": "c9dc8e6200211b957ac820b0392f73a632c9bd6fd196c72e92ce82c849f4c3a0",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise0.5_n100_s1",
+      "file": "conditions/act_noise0.5_n100_s1/policy.pt",
+      "sha256": "28313d892934fca16a7d835039e5a79bebef869c845d3c95fdc103aced58a491",
+      "bytes": 101827997,
+      "train_identity_sha256": "0fad6ef23b09e505417e22a0feb6646aa421fc9bd57b5217fa1a3a5ae9cb356b",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.5.npz",
+      "dataset_sha256": "c9dc8e6200211b957ac820b0392f73a632c9bd6fd196c72e92ce82c849f4c3a0",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise0.5_n100_s2",
+      "file": "conditions/act_noise0.5_n100_s2/policy.pt",
+      "sha256": "e2f47813eb797acb54f042f324ab807a1529ce2dba2519b93ab1c5b56d4101ab",
+      "bytes": 101827997,
+      "train_identity_sha256": "bcef61fb22cdb0a1f1ccaca895b5c8348655521df0d13224e6cbbcd902b45f93",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.5.npz",
+      "dataset_sha256": "c9dc8e6200211b957ac820b0392f73a632c9bd6fd196c72e92ce82c849f4c3a0",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise1_n100_s0",
+      "file": "conditions/act_noise1_n100_s0/policy.pt",
+      "sha256": "2a9d230c168281fb4ca1b6a7d01542c221e7ec566e9f734b9d5f708c5aa69e61",
+      "bytes": 101827997,
+      "train_identity_sha256": "e8b5a4712cdfb9860b53270727c44d8878bb95badd7297dae196f97b43151b8b",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma1.npz",
+      "dataset_sha256": "305b604a50c73a305be077e748ff71fe0cf7cd1bf016048bd32741280033ac6f",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise1_n100_s1",
+      "file": "conditions/act_noise1_n100_s1/policy.pt",
+      "sha256": "617b25156effa9d38d3cefe7113fa5e7a7454192a818002feabcdb99c548c03d",
+      "bytes": 101827997,
+      "train_identity_sha256": "74de6798eab39dfbe7f826272fe12e670179e14b2a89a55c5ebe0dd5b98b8949",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma1.npz",
+      "dataset_sha256": "305b604a50c73a305be077e748ff71fe0cf7cd1bf016048bd32741280033ac6f",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise1_n100_s2",
+      "file": "conditions/act_noise1_n100_s2/policy.pt",
+      "sha256": "5a6c7c8a71f244c18fee751989024952b07d195fec04d3f6ed0f4734aed223c2",
+      "bytes": 101827997,
+      "train_identity_sha256": "3a9bc2221a59fa5727a34ac7726b4806ad077620f3bdf1bb9b050ac35729dc5b",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma1.npz",
+      "dataset_sha256": "305b604a50c73a305be077e748ff71fe0cf7cd1bf016048bd32741280033ac6f",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise2_n100_s0",
+      "file": "conditions/act_noise2_n100_s0/policy.pt",
+      "sha256": "dc5a2921db77651570fb7d4f7a526e2f2fb093e4acd8451f75042cdeede68d10",
+      "bytes": 101827997,
+      "train_identity_sha256": "53157375e88fbdd881a6884776e66288f6f87bd8790e3fb1da988d48fcb21eed",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma2.npz",
+      "dataset_sha256": "68dc844ca1dddd379a95b85e14cb12e86195265f311b2fc07a6d82a0245a42de",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise2_n100_s1",
+      "file": "conditions/act_noise2_n100_s1/policy.pt",
+      "sha256": "ac72980d589422e0ce5d2a00e03bdefbe7a988eaf0eee78c227677372e8d2e1a",
+      "bytes": 101827997,
+      "train_identity_sha256": "d1d1a7fdf85692fbab03af37218896a5de98aa79bb0e73c2678443f4874e96fa",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma2.npz",
+      "dataset_sha256": "68dc844ca1dddd379a95b85e14cb12e86195265f311b2fc07a6d82a0245a42de",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "act_noise2_n100_s2",
+      "file": "conditions/act_noise2_n100_s2/policy.pt",
+      "sha256": "35d16c71d2a897df344575b6432414fc8efeefe16b4c28b5a1a25cbde82c1755",
+      "bytes": 101827997,
+      "train_identity_sha256": "e84b6237f17a6176ff879e4565d6b00f18d27ad596ae1121c41ed74d18746cf6",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma2.npz",
+      "dataset_sha256": "68dc844ca1dddd379a95b85e14cb12e86195265f311b2fc07a6d82a0245a42de",
+      "bundle": "hw2_ckpt_act_noise.tar"
+    },
+    {
+      "model": "flow_clean_n100_s0",
+      "file": "conditions/flow_clean_n100_s0/policy.pt",
+      "sha256": "1eca4aa8aea429701cdceb89f481d7f667cfb1ed743ea95cf0b409bfe68b8e59",
+      "bytes": 40769839,
+      "train_identity_sha256": "76e979cbc645142b9ced252664106fdb99d4770c793b5f613d43a1f82afb372f",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_flow_and_teacher.tar"
+    },
+    {
+      "model": "flow_clean_n100_s1",
+      "file": "conditions/flow_clean_n100_s1/policy.pt",
+      "sha256": "4efe9da28705166a1e14b05481ca0810438d0b5e1db5a96844e12bf22972a220",
+      "bytes": 40769839,
+      "train_identity_sha256": "3fa7add6439e1e4074d2d19aced89904835f6b0ee36b2ddf12b8190961799603",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_flow_and_teacher.tar"
+    },
+    {
+      "model": "flow_clean_n100_s2",
+      "file": "conditions/flow_clean_n100_s2/policy.pt",
+      "sha256": "2618ce906daff81a2dc9784a07f011e83b25babc258bd4379ea134c62ea33ed6",
+      "bytes": 40769839,
+      "train_identity_sha256": "423c6ab30c29a9663968ee6a3335471dab129f89b6e8f88546b1f1bbe63e61ca",
+      "provenance": "retrained (historical checkpoints were not recoverable)",
+      "dataset": "demos_sigma0.npz",
+      "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+      "bundle": "hw2_ckpt_flow_and_teacher.tar"
+    },
+    {
+      "model": "ppo_teacher",
+      "file": "teacher/teacher_params.pkl",
+      "sha256": "22976f400d47455e9158aac84155330f2f0bb172d24ea0678289b0fb80072daf",
+      "bytes": 1148122,
+      "provenance": "retrained; NOT the policy that generated data/*.npz",
+      "bundle": "hw2_ckpt_flow_and_teacher.tar"
+    }
+  ],
+  "bundles": {
+    "hw2_ckpt_act_quantity.tar": {
+      "sha256": "fa4330ae86add7949080a33c1987208d266a105e1756ba3a587bcecdf61db167",
+      "bytes": 916817920,
+      "models": [
+        "act_clean_n25_s0",
+        "act_clean_n25_s1",
+        "act_clean_n25_s2",
+        "act_clean_n50_s0",
+        "act_clean_n50_s1",
+        "act_clean_n50_s2",
+        "act_clean_n100_s0",
+        "act_clean_n100_s1",
+        "act_clean_n100_s2"
+      ]
+    },
+    "hw2_ckpt_act_noise.tar": {
+      "sha256": "5dff5befa0d8bc4d430bec2e87784efcc0d22249a86925a41f4e51b8bb3739d5",
+      "bytes": 916817920,
+      "models": [
+        "act_noise0.5_n100_s0",
+        "act_noise0.5_n100_s1",
+        "act_noise0.5_n100_s2",
+        "act_noise1_n100_s0",
+        "act_noise1_n100_s1",
+        "act_noise1_n100_s2",
+        "act_noise2_n100_s0",
+        "act_noise2_n100_s1",
+        "act_noise2_n100_s2"
+      ]
+    },
+    "hw2_ckpt_flow_and_teacher.tar": {
+      "sha256": "da8c2b3ebb2c3c25ec846206301735e6ac0cb8fa326587352784bb127877f6ef",
+      "bytes": 123586560,
+      "models": [
+        "flow_clean_n100_s0",
+        "flow_clean_n100_s1",
+        "flow_clean_n100_s2",
+        "ppo_teacher"
+      ]
+    }
+  }
+}

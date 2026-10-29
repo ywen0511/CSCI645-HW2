@@ -13,6 +13,8 @@
     "mujoco-mjx": "3.15.0",
     "playground": "0.2.0",
     "torch": "2.11.0+cu128",
-    "numpy": "2.5.3"
-  }
+    "numpy": "2.5.4"
+  },
+  "menagerie_commit": "1b86ece576591213e2b666ebf59508454200ca97",
+  "nvidia_driver": "580.105.08"
 }

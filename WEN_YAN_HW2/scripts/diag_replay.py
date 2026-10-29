@@ -5,18 +5,17 @@ large at the FIRST step. If the simulator is merely not bit-identical between a
 vmapped batch of 512 and a single-env replay, the deviation starts at ~1e-7 and
 grows, which is ordinary chaos in a contact-rich system and is harmless.
 """
-import json, os, sys
 import numpy as np
-sys.path.insert(0, os.path.join(os.environ["PROJ"], "code"))
+
+import common as CM
 from hw2 import envs as E
-E.use_osmesa()
+E.configure_rendering()
 import jax, jax.numpy as jp
 from hw2.data import DemoSet
 
-PROJ = os.environ["PROJ"]
 env = E.make_env("PandaPickCube", impl="jax")
 spec = E.describe_env(env)
-d = DemoSet.load(os.path.join(PROJ, "data", "demos_sigma0.npz"))
+d = DemoSet.load(str(CM.DATA / "demos_sigma0.npz"))
 idxs = d.meta["subset_episode_indices"]
 keys = jax.random.split(jax.random.PRNGKey(d.meta["collect_key_base"]), 512)
 
@@ -51,7 +50,7 @@ for j in range(3):
 out["per_step_deviation"] = curves
 out["first_exceed_1e3"] = [next((i for i, v in enumerate(c) if v > 1e-3), None)
                            for c in curves]
-json.dump(out, open(os.path.join(PROJ, "results", "diag_replay.json"), "w"), indent=2)
+CM.write_json(CM.RESULTS / "diag" / "diag_replay.json", out)
 verdict = ("CHAOS (benign): deviation starts at numerical noise and grows"
            if all((c[0] < 1e-4 and c[1] < 1e-3) for c in curves)
            else "MISALIGNMENT (bug): deviation is large immediately")

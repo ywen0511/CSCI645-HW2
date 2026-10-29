@@ -1,0 +1,7 @@
+{
+  "what": "success rate of the ORIGINAL PPO teacher (the one that collected data/*.npz) on the 100 held-out initial conditions jax.random.split(PRNGKey(7777), 100), at each action-noise sigma",
+  "protocol": "v1 (success over the full 150-step trace, observation-derived distance)",
+  "source": "sigma 0, 0.1, 0.3: teacher_stage1_report.json; sigma 0.5, 1, 2: stage-1b evaluation, preserved only as macros in report/numbers.tex of commit b557dab (teacherSuccSigma*)",
+  "checkpoint": "lost; cannot be re-evaluated under protocol v2",
+  "success_rate": {"0": 1.00, "0.1": 1.00, "0.3": 0.98, "0.5": 0.70, "1": 0.01, "2": 0.00}
+}

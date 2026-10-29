@@ -1,25 +1,26 @@
 \begin{table}[t]
 \centering
 \scriptsize
-\begin{tabular}{p{0.30\linewidth}p{0.62\linewidth}}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{p{0.36\linewidth}p{0.56\linewidth}}
 \toprule
 Artifact & Produced from \\
 \midrule
-\texttt{results/figures/ppo\_curve.png} & \texttt{runs/teacher/ppo\_progress.json} \\
-\texttt{results/figures/demos.png} & \texttt{data/demos\_sigma0.npz} \\
-\texttt{results/figures/demo\_frames.png} & \texttt{videos/expert\_demo*\_frames.npz} \\
-\texttt{results/figures/loss.png} & \texttt{runs/conditions/*/train\_log.json} \\
-\texttt{results/figures/quantity.png} & \texttt{results/conditions/*.json} \\
-\texttt{results/figures/noise.png} & \texttt{results/conditions/*.json} \\
-\texttt{results/figures/algorithms.png} & \texttt{results/conditions/*.json} \\
-\texttt{results/figures/failure.png} & \texttt{results/failure\_analysis.json} \\
-\texttt{results/tables/main.tex} & \texttt{results/conditions/*.json} \\
-\texttt{results/tables/data.tex} & \texttt{runs/teacher/stage1\_report.json} \\
-\texttt{results/tables/paired.tex} & \texttt{results/paired\_comparisons.json} \\
-\texttt{results/tables/modes.tex} & \texttt{results/conditions/*.json} \\
-\texttt{results/summary.csv} & \texttt{results/conditions/*.json} \\
+\nolinkurl{results/summary.json}, \nolinkurl{results/summary.csv} & \nolinkurl{results/eval/A/*.json}, \nolinkurl{results/eval/B/*.json} \\
+\nolinkurl{results/figures/ppo_curve.png} & \nolinkurl{configs/teacher/ppo_progress.json}, \nolinkurl{results/historical_v1/ppo_progress.json} \\
+\nolinkurl{results/figures/demos.png} & \nolinkurl{data/demos_sigma0.npz} \\
+\nolinkurl{results/figures/loss.png} & \nolinkurl{configs/trainlogs/*.json} \\
+\nolinkurl{results/figures/quantity.png} & \nolinkurl{results/eval/A/*.json} \\
+\nolinkurl{results/figures/noise.png} & \nolinkurl{results/eval/A/*.json}, \nolinkurl{results/teacher/teacher_report.json} \\
+\nolinkurl{results/figures/algorithms.png} & \nolinkurl{results/eval/A/*.json} \\
+\nolinkurl{results/figures/fresh.png} & \nolinkurl{results/eval/B/*.json} \\
+\nolinkurl{results/figures/failure.png} & \nolinkurl{results/failure_analysis.json}, \nolinkurl{results/episodes/A/act_clean_n100_s*__replan1.npz} \\
+\nolinkurl{results/figures/frames.png} & \nolinkurl{videos/*.mp4} \\
+\nolinkurl{results/tables/*.tex} & \nolinkurl{results/summary.json}, \nolinkurl{results/teacher/teacher_report.json}, \nolinkurl{results/failure_analysis.json}, \nolinkurl{results/diag/*.json} \\
+\nolinkurl{report/numbers.tex} & all of the above, \nolinkurl{results/environment.json}, \nolinkurl{configs/*} \\
 \bottomrule
 \end{tabular}
-\caption{Provenance of every figure and table in this report.}
+\end{adjustbox}
+\caption{Provenance of every figure and table (all built by \texttt{scripts/stage3\_report.py}).}
 \label{tab:prov}
 \end{table}

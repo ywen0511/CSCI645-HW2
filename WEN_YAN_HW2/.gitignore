@@ -1,0 +1,13 @@
+runs/
+dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+report/report.tex
+report/report.aux
+report/report.log
+report/report.out
+report/report.txt
+report/report.build.log
+report/report.pdflatex.log
+report/report.pdf

@@ -1,6 +1,6 @@
 """Record the exact software/hardware environment for the reproducibility section."""
 import json, os, platform, subprocess, sys
-sys.path.insert(0, os.path.join(os.environ["PROJ"], "code"))
+import common as CM  # noqa: F401  (sets sys.path, PROJ)
 
 PLAYGROUND_SHA = "d59156e099a8785dd58fbce2e25a6ee1f7b5800c"
 
@@ -40,7 +40,21 @@ def main():
         info["versions"]["playground"] = md.version("playground")
     except Exception:
         pass
-    out = os.path.join(os.environ["PROJ"], "results", "environment.json")
+    try:
+        import mujoco_playground as mp
+        mdir = os.path.join(os.path.dirname(mp.__file__), "external_deps", "mujoco_menagerie")
+        info["menagerie_commit"] = subprocess.run(
+            ["git", "-C", mdir, "rev-parse", "HEAD"], capture_output=True, text=True
+        ).stdout.strip() or "unknown"
+    except Exception:
+        info["menagerie_commit"] = "unknown"
+    try:
+        info["nvidia_driver"] = subprocess.run(
+            ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
+            capture_output=True, text=True, timeout=20).stdout.strip().splitlines()[0]
+    except Exception:
+        info["nvidia_driver"] = "unknown"
+    out = os.path.join(str(CM.RESULTS), "environment.json")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     json.dump(info, open(out, "w"), indent=2)
     print(json.dumps(info, indent=2))

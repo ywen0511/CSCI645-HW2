@@ -9,7 +9,7 @@ try:
 except Exception as e:
     print("mujoco_warp MISSING:", type(e).__name__, e)
 
-sys.path.insert(0, os.path.join(os.environ["PROJ"], "code"))
+import common as CM  # noqa: F401  (sets sys.path, PROJ)
 from hw2 import envs as E
 
 def bench(impl, B, n=30):

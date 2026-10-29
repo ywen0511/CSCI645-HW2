@@ -1,0 +1,31 @@
+{
+  "seed": 0,
+  "num_timesteps_requested": 60000000,
+  "num_timesteps_reached": 63897600,
+  "ppo_params": {
+    "action_repeat": "1",
+    "batch_size": "512",
+    "discounting": "0.97",
+    "entropy_cost": "0.02",
+    "episode_length": "150",
+    "learning_rate": "0.001",
+    "normalize_observations": "True",
+    "num_envs": "2048",
+    "num_evals": "4",
+    "num_minibatches": "32",
+    "num_resets_per_eval": "10",
+    "num_timesteps": "60000000",
+    "num_updates_per_batch": "8",
+    "reward_scaling": "1.0",
+    "unroll_length": "10"
+  },
+  "wall_s": 641.252601146698,
+  "provenance": "retrained 2026-10; NOT the policy that generated data/*.npz",
+  "identity": {
+    "seed": 0,
+    "num_timesteps": 60000000,
+    "playground": "d59156e099a8785dd58fbce2e25a6ee1f7b5800c"
+  },
+  "params_sha256": "22976f400d47455e9158aac84155330f2f0bb172d24ea0678289b0fb80072daf",
+  "reload_vs_memory_action_maxdev": 0.0
+}

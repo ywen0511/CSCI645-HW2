@@ -141,7 +141,7 @@ def train(demos_path: str, out_dir: str, algo: str = "act", n_demos: int = 100,
         "normalizer": {"obs_mean": norm.obs_mean, "obs_std": norm.obs_std,
                        "act_mean": norm.act_mean, "act_std": norm.act_std},
         "n_demos": n_demos, "chunk": chunk, "seed": seed, "steps": steps,
-        "n_params": n_params, "demos_path": demos_path,
+        "n_params": n_params, "demos_path": os.path.basename(demos_path),
         "demo_summary": summary,
         "episode_indices": demos.meta.get("subset_episode_indices"),
     }
@@ -153,7 +153,7 @@ def train(demos_path: str, out_dir: str, algo: str = "act", n_demos: int = 100,
             "warmup": warmup, "seed": seed, "ema_decay": ema_decay,
             "successful_only": successful_only,
             "policy_cfg": cfg.as_dict(), "n_params": n_params,
-            "demos_path": demos_path, "demo_summary": summary,
+            "demos_path": os.path.basename(demos_path), "demo_summary": summary,
         }, "wall_s": time.time() - t0}, f, indent=2)
     print(f"[train] done in {time.time()-t0:.0f}s -> {out_dir}/policy.pt", flush=True)
     return {"out_dir": out_dir, "history": history, "n_params": n_params}

@@ -1,18 +1,20 @@
 \begin{table}[t]
 \centering
-\small
-\begin{tabular}{lrrrrr}
+\scriptsize
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{rrrrrrll}
 \toprule
-Dataset & $\sigma$ & Episodes & Transitions & Len. (mean$\pm$sd) & Success \\
+$\sigma$ & Eps. & Transitions & Mean len. & Term. & Succ. & Filter & Used by \\
 \midrule
-\texttt{sigma0} & 0 & 100 & 15000 & 150.0$\pm$0.0 & 100.0\% \\
-\texttt{sigma0.1} & 0.1 & 100 & 15000 & 150.0$\pm$0.0 & 99.0\% \\
-\texttt{sigma0.3} & 0.3 & 100 & 15000 & 150.0$\pm$0.0 & 97.0\% \\
-\texttt{sigma0.5} & 0.5 & 100 & 14636 & 146.4$\pm$15.9 & 71.0\% \\
-\texttt{sigma1} & 1 & 100 & 14093 & 140.9$\pm$26.2 & 0.0\% \\
-\texttt{sigma2} & 2 & 100 & 14390 & 143.9$\pm$20.9 & 0.0\% \\
+0 & 100 & 15,000 & 150.0 & 0 & 100 & success only & quantity + flow \\
+0.1 & 100 & 15,000 & 150.0 & 0 & 99 & none & not used (preliminary) \\
+0.3 & 100 & 15,000 & 150.0 & 0 & 97 & none & not used (preliminary) \\
+0.5 & 100 & 14,636 & 146.4 & 7 & 71 & none & noise \\
+1 & 100 & 14,093 & 140.9 & 13 & 0 & none & noise \\
+2 & 100 & 14,390 & 143.9 & 10 & 0 & none & noise \\
 \bottomrule
 \end{tabular}
-\caption{Collected demonstration datasets. `Success' is the fraction of stored episodes meeting the success criterion; the clean set is filtered to successful episodes, the noisy sets are not (degraded data quality is the independent variable).}
+\end{adjustbox}
+\caption{Committed demonstration datasets (collected by the original teacher). The clean set keeps successful episodes only (the first 100 of 512 collected all succeeded, so the filter removed none); noisy sets keep the first 100 episodes including failures. $\sigma{=}0.1, 0.3$ were a preliminary sweep that barely degraded the teacher and are not used by any student.}
 \label{tab:data}
 \end{table}

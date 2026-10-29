@@ -1,0 +1,33 @@
+{
+  "name": "flow_clean_n100_s1",
+  "identity": {
+    "dataset": "demos_sigma0.npz",
+    "dataset_sha256": "da8fa8d7461b41efc0c8f13c214a04163d3a0e408f5f82e4af6446ec884e406f",
+    "config": {
+      "algo": "flow",
+      "n_demos": 100,
+      "seed": 1,
+      "successful_only": true,
+      "policy_overrides": {
+        "hidden_dim": 256,
+        "n_layers": 4,
+        "n_heads": 4
+      },
+      "steps": 6000,
+      "batch_size": 128,
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "warmup": 200,
+      "ema_decay": 0.999,
+      "chunk": 30
+    },
+    "train_code_sha256": "39c38659e4e8fcea3988a86deb165efe659569c753055ef7774ef3dbe555fcd0"
+  },
+  "identity_sha256": "3fa7add6439e1e4074d2d19aced89904835f6b0ee36b2ddf12b8190961799603",
+  "policy_sha256": "4efe9da28705166a1e14b05481ca0810438d0b5e1db5a96844e12bf22972a220",
+  "provenance": "retrained (historical checkpoints were not recoverable)",
+  "git": "c59019f3f7be95961e1dfa4f7fbd6f1722ca5aef+dirty",
+  "host": "dcwipphhgc216.edc.nam.gm.com",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "wall_s": 81.80316948890686
+}

@@ -1,28 +1,44 @@
-"""Closed-loop evaluation of a trained student policy in the simulator.
+"""Closed-loop evaluation of trained student policies (protocol v2).
 
 The student is a torch module; the environment is JAX/MJX. We vmap the env over
-all evaluation episodes and run them in lockstep, exchanging numpy arrays at the
-chunk boundaries, so 100 episodes cost one batched rollout.
+all evaluation episodes and run them in lockstep, exchanging numpy arrays every
+control step, so 100 episodes cost one batched rollout.
 
-Two inference modes from the ACT paper:
-  chunk     -- predict H actions, execute `exec_horizon` of them open loop,
-               then re-plan. `exec_horizon == H` is pure open-loop chunking.
-  ensemble  -- predict at every step and temporally ensemble all predictions
-               that cover the current timestep with exponential weights
-               w_i ∝ exp(-m i) (ACT's "temporal ensembling").
+Inference modes (ACT paper):
+  ensemble  predict a chunk at every step and average all predictions that
+            cover the current step with weights exp(-m * age), m = 0.01, i.e.
+            the NEWEST prediction weighs most -- the historical headline
+            protocol, unchanged. (ACT's reference weights the OLDEST most; see
+            ActionSelector.)
+  chunk     predict H actions and execute `exec_horizon` of them open loop.
+            exec_horizon = 1 is per-step replanning (first action only).
 
-Evaluation seeds are fixed and shared across every condition, and are disjoint
-from the demonstration-collection seeds, so no student is evaluated on an
-initial condition it was trained on.
+Scoring follows `hw2.metrics` (termination-aware). Every rollout returns the
+raw per-state traces so the metrics can be recomputed without simulation; see
+`save_episodes`.
 """
 from __future__ import annotations
 
-import json
 import os
 from typing import Dict, List, Optional
 
 import numpy as np
 import torch
+
+from hw2 import metrics as MT
+from hw2.inference import ActionSelector  # noqa: F401  (re-exported)
+from hw2.scoring import score, summarize  # noqa: F401  (re-exported)
+
+MODES = {
+    "ensemble": dict(exec_mode="ensemble"),
+    "replan1": dict(exec_mode="chunk", exec_horizon=1),
+}
+# diagnostics only (never headline numbers)
+DIAG_MODES = {
+    "ensemble_oldest": dict(exec_mode="ensemble", ensemble_order="oldest"),
+    "chunk_full": dict(exec_mode="chunk"),
+    "chunk5": dict(exec_mode="chunk", exec_horizon=5),
+}
 
 
 def load_policy(ckpt_path: str, device: str = "cuda", use_ema: bool = True):
@@ -40,174 +56,117 @@ def load_policy(ckpt_path: str, device: str = "cuda", use_ema: bool = True):
     return model, ck, {k: np.asarray(v, dtype=np.float32) for k, v in n.items()}
 
 
+def make_predictor(model, norm: Dict[str, np.ndarray], device: str = "cuda"):
+    """obs (B, obs_dim) numpy -> de-normalised action chunk (B, H, A) numpy."""
+    om = torch.as_tensor(norm["obs_mean"], device=device)
+    os_ = torch.as_tensor(norm["obs_std"], device=device)
+    am = torch.as_tensor(norm["act_mean"], device=device)
+    as_ = torch.as_tensor(norm["act_std"], device=device)
+
+    @torch.no_grad()
+    def predict(obs_np: np.ndarray) -> np.ndarray:
+        o = torch.as_tensor(np.asarray(obs_np, np.float32), device=device)
+        o = (o - om) / os_
+        return (model.predict_chunk(o) * as_ + am).float().cpu().numpy()
+    return predict
+
+
+def _stack_diag(rows: List[dict]) -> Dict[str, np.ndarray]:
+    keys = rows[0].keys()
+    return {k: np.stack([np.asarray(r[k]) for r in rows], 1) for k in keys}
+
+
 @torch.no_grad()
-def rollout_students(env, model, norm: Dict[str, np.ndarray], rng_keys,
-                     episode_length: int, exec_mode: str = "ensemble",
+def rollout_students(env, spec, model, norm: Dict[str, np.ndarray], rng_keys,
+                     exec_mode: str = "ensemble",
                      exec_horizon: Optional[int] = None,
-                     ensemble_m: float = 0.01,
-                     target_rel_slice=(49, 52),
-                     box_rel_slice=(46, 49),
+                     ensemble_m: float = 0.01, ensemble_order: str = "newest",
                      device: str = "cuda",
                      keep_states_for: Optional[List[int]] = None):
-    """Run a batch of evaluation episodes under the student policy."""
+    """Batched student rollout. Returns raw per-state traces (see metrics.py).
+
+    The batch keeps stepping after an episode terminates (the env has no
+    auto-reset); those states are recorded but masked out by the metrics.
+    """
     import jax
     import jax.numpy as jp
+    from hw2.envs import state_diagnostics_fn
 
-    lo, hi = target_rel_slice
-    blo, bhi = box_rel_slice
-    B = rng_keys.shape[0]
-    H = int(model.cfg.chunk_size)
-    A = int(model.cfg.act_dim)
-    k_exec = int(exec_horizon or H)
-
+    B = int(rng_keys.shape[0])
+    T = int(spec.episode_length)
+    H, A = int(model.cfg.chunk_size), int(model.cfg.act_dim)
     vreset = jax.jit(jax.vmap(env.reset))
     vstep = jax.jit(jax.vmap(env.step))
-
-    om = torch.as_tensor(norm["obs_mean"], device=device)
-    os_ = torch.as_tensor(norm["obs_std"], device=device)
-    am = torch.as_tensor(norm["act_mean"], device=device)
-    as_ = torch.as_tensor(norm["act_std"], device=device)
-
-    def predict(obs_np: np.ndarray) -> np.ndarray:
-        o = torch.as_tensor(obs_np, device=device, dtype=torch.float32)
-        o = (o - om) / os_
-        chunk = model.predict_chunk(o)              # (B, H, A) normalised
-        chunk = chunk * as_ + am
-        return chunk.float().cpu().numpy()
+    vdiag = jax.jit(jax.vmap(state_diagnostics_fn(env, spec)))
+    predict = make_predictor(model, norm, device)
+    sel = ActionSelector(B, H, A, T, exec_mode, exec_horizon, ensemble_m,
+                         ensemble_order)
 
     state = vreset(rng_keys)
-    dists = [np.linalg.norm(np.asarray(state.obs[:, lo:hi]), axis=-1)]
-    dones = np.zeros((B,), dtype=bool)
-    done_flags, rewards, grip = [], [], []
-    kept: Dict[int, list] = {i: [] for i in (keep_states_for or [])}
-
-    # temporal-ensemble buffer: predictions for absolute timesteps
-    ens_sum = np.zeros((B, episode_length + H, A), dtype=np.float64)
-    ens_wt = np.zeros((B, episode_length + H, 1), dtype=np.float64)
-    pending = np.zeros((B, H, A), dtype=np.float32)
-
-    for t in range(episode_length):
+    diags = [jax.device_get(vdiag(state))]
+    done, rewards, actions = [], [], []
+    kept: Dict[int, list] = {i: [jax.tree_util.tree_map(lambda x: x[i], state)]
+                             for i in (keep_states_for or [])}
+    for t in range(T):
         obs_np = np.asarray(state.obs, dtype=np.float32)
-        if exec_mode == "ensemble":
-            chunk = predict(obs_np)                                  # (B,H,A)
-            w = np.exp(-ensemble_m * np.arange(H))[None, :, None]    # (1,H,1)
-            ens_sum[:, t:t + H] += chunk.astype(np.float64) * w
-            ens_wt[:, t:t + H] += w
-            act = ens_sum[:, t] / np.maximum(ens_wt[:, t], 1e-9)
-        elif exec_mode == "chunk":
-            if t % k_exec == 0:
-                pending = predict(obs_np)
-            act = pending[:, t % k_exec]
-        else:
-            raise ValueError(f"unknown exec_mode {exec_mode!r}")
-
-        act = np.clip(act, -1.0, 1.0).astype(np.float32)
+        chunk = predict(obs_np) if sel.needs_prediction(t) else None
+        act = sel.act(t, chunk)
         state = vstep(state, jp.asarray(act))
-        d = np.asarray(state.obs[:, lo:hi])
-        dists.append(np.linalg.norm(d, axis=-1))
+        diags.append(jax.device_get(vdiag(state)))
+        done.append(np.asarray(state.done))
         rewards.append(np.asarray(state.reward))
-        grip.append(np.linalg.norm(np.asarray(state.obs[:, blo:bhi]), axis=-1))
-        dones |= np.asarray(state.done).astype(bool)
-        done_flags.append(dones.copy())
+        actions.append(act)
         for i in kept:
             kept[i].append(jax.tree_util.tree_map(lambda x: x[i], state))
-
-    return {
-        "dist": np.stack(dists, 1),                  # (B, T+1)
-        "rewards": np.stack(rewards, 1),             # (B, T)
-        "done": np.stack(done_flags, 1),             # (B, T)
-        "grip_dist": np.stack(grip, 1),              # (B, T)
-        "kept_states": kept,
-    }
+    raw = _stack_diag(diags)                       # each (B, T+1)
+    raw["done"] = np.stack(done, 1).astype(bool)   # (B, T) raw, not sticky
+    raw["rewards"] = np.stack(rewards, 1)
+    raw["actions"] = np.stack(actions, 1)          # (B, T, A) executed
+    raw["kept_states"] = kept
+    return raw
 
 
-def wilson_ci(k: int, n: int, z: float = 1.96):
-    """Wilson score interval for a binomial proportion."""
-    if n == 0:
-        return (0.0, 0.0, 0.0)
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = float(z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d)
-    # plain python floats: np.float64 is not JSON-serialisable and would only
-    # blow up at the very end of a long job, when the report is written.
-    return (float(p), float(max(0.0, c - h)), float(min(1.0, c + h)))
+def evaluate(env, spec, model, norm, rng_keys, radius, hold, mode: str,
+             device: str = "cuda", keep_states_for=None):
+    """Rollout + score + summary for one inference mode."""
+    kw = MODES[mode] if mode in MODES else DIAG_MODES[mode]
+    raw = rollout_students(env, spec, model, norm, rng_keys, device=device,
+                           keep_states_for=keep_states_for, **kw)
+    ep = score(raw, radius, hold)
+    ep.update({"_dist": raw["dist"], "_done": raw["done"],
+               "_nonfinite": raw["nonfinite"]})
+    s = summarize(ep, radius, hold)
+    s["mode"] = mode
+    return raw, ep, s
 
 
-def summarize(res: Dict[str, np.ndarray], radius: float, hold: int) -> dict:
-    from hw2.envs import success_from_distances
-    suc = success_from_distances(res["dist"], radius, hold)
-    n = int(len(suc))
-    k = int(suc.sum())
-    p, lo, hi = wilson_ci(k, n)
-    return {
-        "n_episodes": n, "n_success": k,
-        "success_rate": float(p), "success_ci95": [float(lo), float(hi)],
-        "min_dist_mean": float(res["dist"].min(1).mean()),
-        "final_dist_mean": float(res["dist"][:, -1].mean()),
-        "return_mean": float(res["rewards"].sum(1).mean()),
-        "return_std": float(res["rewards"].sum(1).std()),
-        "out_of_bounds_frac": float(res["done"][:, -1].mean()),
-        "reached_box_frac": (float((res["grip_dist"].min(1) < 0.012).mean())
-                             if "grip_dist" in res else None),
-        "min_grip_dist_mean": (float(res["grip_dist"].min(1).mean())
-                               if "grip_dist" in res else None),
-        "success_radius": radius, "success_hold": hold,
-        "per_episode_success": suc.astype(bool).tolist(),
-    }
-
-
-@torch.no_grad()
-def rollout_student_states(env, model, norm: Dict[str, np.ndarray], rng_key,
-                           episode_length: int, exec_mode: str = "ensemble",
-                           exec_horizon: Optional[int] = None,
-                           ensemble_m: float = 0.01,
-                           target_rel_slice=(49, 52), box_rel_slice=(46, 49),
-                           device: str = "cuda"):
-    """Single-episode student rollout that KEEPS env States, for rendering."""
+def key_data(rng_keys) -> np.ndarray:
+    """Raw uint32 data of a batch of jax PRNG keys (legacy or typed)."""
     import jax
-    import jax.numpy as jp
+    k = rng_keys
+    try:
+        if jax.dtypes.issubdtype(k.dtype, jax.dtypes.prng_key):
+            k = jax.random.key_data(k)
+    except Exception:
+        pass
+    return np.asarray(k, dtype=np.uint32)
 
-    lo, hi = target_rel_slice
-    blo, bhi = box_rel_slice
-    H = int(model.cfg.chunk_size)
-    A = int(model.cfg.act_dim)
-    k_exec = int(exec_horizon or H)
-    reset, step = jax.jit(env.reset), jax.jit(env.step)
 
-    om = torch.as_tensor(norm["obs_mean"], device=device)
-    os_ = torch.as_tensor(norm["obs_std"], device=device)
-    am = torch.as_tensor(norm["act_mean"], device=device)
-    as_ = torch.as_tensor(norm["act_std"], device=device)
-
-    def predict(obs_np):
-        o = torch.as_tensor(obs_np[None], device=device, dtype=torch.float32)
-        o = (o - om) / os_
-        c = model.predict_chunk(o) * as_ + am
-        return c[0].float().cpu().numpy()
-
-    state = reset(rng_key)
-    states = [state]
-    dists = [float(jp.linalg.norm(state.obs[lo:hi]))]
-    grips = []
-    ens_sum = np.zeros((episode_length + H, A), dtype=np.float64)
-    ens_wt = np.zeros((episode_length + H, 1), dtype=np.float64)
-    pending = np.zeros((H, A), dtype=np.float32)
-    for t in range(episode_length):
-        obs_np = np.asarray(state.obs, dtype=np.float32)
-        if exec_mode == "ensemble":
-            chunk = predict(obs_np)
-            w = np.exp(-ensemble_m * np.arange(H))[:, None]
-            ens_sum[t:t + H] += chunk.astype(np.float64) * w
-            ens_wt[t:t + H] += w
-            act = ens_sum[t] / np.maximum(ens_wt[t], 1e-9)
-        else:
-            if t % k_exec == 0:
-                pending = predict(obs_np)
-            act = pending[t % k_exec]
-        act = np.clip(act, -1.0, 1.0).astype(np.float32)
-        state = step(state, jp.asarray(act))
-        states.append(state)
-        dists.append(float(jp.linalg.norm(state.obs[lo:hi])))
-        grips.append(float(jp.linalg.norm(state.obs[blo:bhi])))
-    return states, np.asarray(dists), np.asarray(grips)
+def save_episodes(path: str, rng_keys, raw: Dict[str, np.ndarray],
+                  ep: Dict[str, np.ndarray], meta: dict) -> str:
+    """Everything needed to recompute the metrics without simulation."""
+    import json
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    arrs = {f"raw_{k}": np.asarray(v) for k, v in raw.items()
+            if k != "kept_states" and k != "actions"}
+    arrs["raw_actions"] = np.asarray(raw["actions"], np.float16)
+    for k, v in ep.items():
+        if k.startswith("_"):
+            continue
+        arrs[f"ep_{k}"] = np.asarray(v).astype(str) if k in ("label", "term_cause") \
+            else np.asarray(v)
+    tmp = path + ".tmp.npz"
+    np.savez_compressed(tmp, reset_keys=key_data(rng_keys),
+                        meta=json.dumps(meta), **arrs)
+    os.replace(tmp, path)
+    return path
