@@ -29,7 +29,7 @@ $PIP install "mujoco==3.15.0" "mujoco-mjx==3.15.0"
 $PIP install "git+https://github.com/google-deepmind/mujoco_playground@${PLAYGROUND_COMMIT}"
 $PIP install "brax==0.14.2" "jax[cuda12]==0.9.2" "jaxlib==0.9.2" "flax==0.11.2"
 $PIP install "torch==2.11.0" --index-url https://download.pytorch.org/whl/cu128
-$PIP install mediapy "imageio[ffmpeg]" matplotlib pandas scipy tqdm einops pytest
+$PIP install mediapy "imageio[ffmpeg]" matplotlib pandas scipy tqdm einops pytest pypdf
 
 "$ENVP/bin/python" - <<'EOF'
 import jax, brax, mujoco, torch
