@@ -1,0 +1,53 @@
+{
+  "frozen_utc": "2026-10-29T01:57:49+00:00",
+  "purpose": "confirm (or not) the moderate-noise finding on unseen initial conditions",
+  "models": [
+    "act_clean_n100_s0",
+    "act_clean_n100_s1",
+    "act_clean_n100_s2",
+    "act_noise0.5_n100_s0",
+    "act_noise0.5_n100_s1",
+    "act_noise0.5_n100_s2"
+  ],
+  "checkpoints": "the same suite-A checkpoints (runs/conditions/<model>/policy.pt), verified by policy_sha256 in each evaluation identity",
+  "mode": "replan1",
+  "mode_definition": "re-plan every control step, execute only the first predicted action",
+  "eval_base_seed": 17777,
+  "n_episodes": 100,
+  "reset_keys": "jax.random.split(jax.random.PRNGKey(eval_base_seed), n_episodes)",
+  "reset_keys_sha256": "5e18af4383e3f9425c61fc05ce88f8049d00985fba9978fb679372e198cc43bf",
+  "key_collisions": {
+    "original_eval_7777": 0,
+    "demo_pool_demos_sigma0.1_base1100": 0,
+    "demo_pool_demos_sigma0.3_base1300": 0,
+    "demo_pool_demos_sigma0.5_base1500": 0,
+    "demo_pool_demos_sigma0_base1000": 0,
+    "demo_pool_demos_sigma1_base2000": 0,
+    "demo_pool_demos_sigma2_base3000": 0
+  },
+  "nearest_initial_config_distance_m": {
+    "original_eval_7777": 0.005880740471184254,
+    "demo_pool_demos_sigma0.1_base1100": 0.0038762963376939297,
+    "demo_pool_demos_sigma0.3_base1300": 0.0030661169439554214,
+    "demo_pool_demos_sigma0.5_base1500": 0.005175726488232613,
+    "demo_pool_demos_sigma0_base1000": 0.003701372304931283,
+    "demo_pool_demos_sigma1_base2000": 0.004508309066295624,
+    "demo_pool_demos_sigma2_base3000": 0.004223935306072235
+  },
+  "success": "box-target distance (simulator) < 0.05 m for 10 consecutive valid control steps, protocol v2 (termination-aware)",
+  "estimand": "mean over the 3 training seeds of the success rate on the 100 fresh initial conditions; contrast = noisy(sigma=0.5) - clean",
+  "analysis": [
+    "per-model success counts and Wilson 95% intervals",
+    "per-condition mean of the 3 per-seed success rates",
+    "paired bootstrap over the 100 shared initial conditions (20,000 resamples, numpy seed 0), models held fixed: uncertainty conditional on these 3+3 models",
+    "two-way bootstrap resampling training seeds within condition AND initial conditions: crude (3 seeds) but includes seed-to-seed variation",
+    "exact sign-flip test on per-condition-differences of seed-averaged success per initial condition (10^5 random flips)",
+    "per-seed-index differences (seed s noisy - seed s clean) listed, not tested"
+  ],
+  "decision_rule": "report 'confirmed' only if the paired initial-condition bootstrap 95% CI of the contrast lies entirely above 0; otherwise report 'not confirmed' with the estimate. The two-way interval is reported alongside as the more conservative statement.",
+  "commitments": [
+    "evaluate once; no re-runs with other evaluation seeds",
+    "no tuning, checkpoint or seed replacement based on this set",
+    "all 600 episode outcomes are saved and reported"
+  ]
+}
