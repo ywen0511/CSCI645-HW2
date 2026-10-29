@@ -202,7 +202,7 @@ def main():
                    r"every step. `Mean' averages the three training seeds. `IC 95\% CI' resamples "
                    r"the shared ICs with the trained models fixed; `2-way CI' also resamples the "
                    r"training seeds (crude with three seeds).",
-                   "tab:main", size=r"\scriptsize", midrules=mids, star=True)
+                   "tab:main", size=r"\scriptsize", midrules=mids, star=True, fit=True)
     rows = []
     for c, (grp, algo, nd, sig, lbl) in CELLS.items():
         k = f"{sig:g}"
@@ -221,7 +221,7 @@ def main():
                    r"(data-collecting) teacher's archived v1 result. Student: mean of 3 "
                    r"training seeds with the IC-bootstrap 95\% CI; each seed is evaluated on "
                    r"the same 100 held-out ICs (300 episodes per condition, not 300 "
-                   r"independent ICs).", "tab:required", size=r"\scriptsize", midrules=[3, 6])
+                   r"independent ICs).", "tab:required", size=r"\scriptsize", midrules=[3, 6], fit=True)
     rows = []
     for k, lbl, ca, cb in CONTRASTS:
         r = [lbl]
@@ -238,7 +238,7 @@ def main():
                    r"evaluated on the same 100 ICs, so the IC bootstrap resamples ICs jointly; "
                    r"$p$ is a sign-flip test of the per-IC difference of seed-averaged success "
                    r"(conditional on the trained models). Multiple contrasts are reported "
-                   r"without correction.", "tab:contrasts", size=r"\scriptsize", star=True)
+                   r"without correction.", "tab:contrasts", size=r"\scriptsize", star=True, fit=True)
     rows = []
     for c in ("act_clean_n100", "act_noise0.5_n100"):
         s = fresh[c]
@@ -348,7 +348,7 @@ def main():
                    r"visited by the retrained teacher or by the student (vs.\ the retrained "
                    r"teacher; its own disagreement with the stored actions on training states "
                    r"is \diagTeacherFloor). Last three: successes of other inference variants.",
-                   "tab:diag", size=r"\scriptsize", star=True)
+                   "tab:diag", size=r"\scriptsize", star=True, fit=True)
     rows = [[CM_esc(s), CM_esc(src)] for s, src in prov] + [
         [CM_esc("results/tables/*.tex"), CM_esc("results/summary.json, results/teacher/teacher_report.json, results/failure_analysis.json, results/diag/*.json")],
         [CM_esc("report/numbers.tex"), "all of the above, " + CM_esc("results/environment.json, configs/*")]]
@@ -630,7 +630,7 @@ rvert cline addlinespace makecell tabularnewline bf it rm tt sf emph footnotesiz
 captionsetup subcaption subfloat hyphenation sloppy allowbreak nobreak checkmark
 textgreater textless textquotedbl leftmargin itemsep topsep labelsep nolinebreak
 renewenvironment newenvironment fbox mbox makebox raisebox resizebox scalebox lfloor rfloor
-subset subseteq adjustbox emergencystretch
+subset subseteq adjustbox emergencystretch resizebox IfFileExists
 """.split()) | {",", "%", "&", "#", "$", "_", "{", "}", "\\"}
 
 

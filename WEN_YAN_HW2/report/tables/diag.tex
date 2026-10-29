@@ -1,7 +1,7 @@
 \begin{table*}[t]
 \centering
 \scriptsize
-\begin{adjustbox}{max width=\linewidth}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lrrrrrrrr}
 \toprule
 Baseline & Ens.\ train/test & Replan train/test & MAE data & MAE teacher & MAE student & Ens.\ (ACT order) & Open loop & Chunk 5 \\
@@ -11,7 +11,7 @@ seed 1 & 32 / 21 & 35 / 34 & 0.031 & 0.073 & 0.651 & 18 & 6 & 25 \\
 seed 2 & 27 / 28 & 33 / 31 & 0.032 & 0.075 & 0.662 & 28 & 9 & 23 \\
 \bottomrule
 \end{tabular}
-\end{adjustbox}
+}
 \caption{Separate diagnostic runs on the three baseline models (ACT, 100 clean). Columns 2--3: successes out of 100 on the ICs the demonstrations came from vs.\ the held-out ICs. MAE: mean absolute error of the first predicted action on the stored training states (vs.\ stored actions) and on states visited by the retrained teacher or by the student (vs.\ the retrained teacher; its own disagreement with the stored actions on training states is \diagTeacherFloor). Last three: successes of other inference variants.}
 \label{tab:diag}
 \end{table*}

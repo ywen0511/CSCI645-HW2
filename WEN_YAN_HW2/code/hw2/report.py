@@ -78,18 +78,22 @@ def ci(c, nd: int = 1) -> str:
 
 def write_table(path: str, colspec: str, header: List[str], rows: List[List[str]],
                 caption: str, label: str, size: str = r"\small",
-                midrules: Optional[List[int]] = None, star: bool = False) -> None:
-    """A complete float environment (never a fragment inside a tabular)."""
+                midrules: Optional[List[int]] = None, star: bool = False,
+                fit: bool = False) -> None:
+    """A complete float environment (never a fragment inside a tabular).
+
+    fit=True scales the tabular to the line width (graphicx only, so the
+    report builds with a minimal TeX installation)."""
     env = "table*" if star else "table"
     lines = [rf"\begin{{{env}}}[t]", r"\centering", size,
-             r"\begin{adjustbox}{max width=\linewidth}",
+             r"\resizebox{\linewidth}{!}{%" if fit else "%",
              rf"\begin{{tabular}}{{{colspec}}}", r"\toprule",
              " & ".join(header) + r" \\", r"\midrule"]
     for i, r in enumerate(rows):
         if midrules and i in midrules:
             lines.append(r"\midrule")
         lines.append(" & ".join(r) + r" \\")
-    lines += [r"\bottomrule", r"\end{tabular}", r"\end{adjustbox}",
+    lines += [r"\bottomrule", r"\end{tabular}", "}" if fit else "%",
               rf"\caption{{{caption}}}",
               rf"\label{{{label}}}", rf"\end{{{env}}}"]
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)

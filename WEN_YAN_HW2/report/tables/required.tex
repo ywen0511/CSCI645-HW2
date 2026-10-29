@@ -1,7 +1,7 @@
 \begin{table}[t]
 \centering
 \scriptsize
-\begin{adjustbox}{max width=\linewidth}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lrrrrr}
 \toprule
 Condition & \#Demos & Teacher succ.\ (orig.) & Student, ensembling & Student, replan & Eval.\ episodes \\
@@ -17,7 +17,7 @@ ACT, 100 at $\sigma{=}2$ & 100 & 0 (0) & 0.0 [0.0, 0.0] & 0.0 [0.0, 0.0] & 3 $\t
 Flow matching, 100 clean (suppl.) & 100 & 100 (100) & 24.3 [17.7, 31.3] & 14.0 [9.3, 19.0] & 3 $\times$ 100 \\
 \bottomrule
 \end{tabular}
-\end{adjustbox}
+}
 \caption{The table required by Part 4 (success in \%, suite A, protocol v2). Teacher: the retrained teacher at the action-noise level of that condition's data on the same 100 ICs; in parentheses the original (data-collecting) teacher's archived v1 result. Student: mean of 3 training seeds with the IC-bootstrap 95\% CI; each seed is evaluated on the same 100 held-out ICs (300 episodes per condition, not 300 independent ICs).}
 \label{tab:required}
 \end{table}

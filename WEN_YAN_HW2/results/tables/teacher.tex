@@ -1,7 +1,7 @@
 \begin{table}[t]
 \centering
 \scriptsize
-\begin{adjustbox}{max width=\linewidth}
+%
 \begin{tabular}{rrrrrrr}
 \toprule
 $\sigma$ & Orig.\ teacher & Retrained & Term.\,\% & Dataset succ. & Data term. & $|a_{\mathrm{data}}-a_{\mathrm{new}}|$ \\
@@ -14,7 +14,7 @@ $\sigma$ & Orig.\ teacher & Retrained & Term.\,\% & Dataset succ. & Data term. &
 2 & 0 & 0/100 & 7 & 0/100 & 10 & 0.809 \\
 \bottomrule
 \end{tabular}
-\end{adjustbox}
+%
 \caption{Teacher provenance. `Orig.\ teacher': success (\%) of the ORIGINAL teacher that collected the datasets (archived, protocol v1). `Retrained': the retrained teacher on the same 100 held-out ICs (v2) and its share of terminated episodes. `Dataset succ.': stored success labels of the committed 100-episode datasets (identical under v2). `Data term.': dataset episodes truncated at termination. Last column: mean absolute difference between the stored actions and the retrained teacher's clipped action at the same states.}
 \label{tab:teacher}
 \end{table}

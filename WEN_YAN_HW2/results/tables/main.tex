@@ -1,7 +1,7 @@
 \begin{table*}[t]
 \centering
 \scriptsize
-\begin{adjustbox}{max width=\linewidth}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lrrrrrrrr}
 \toprule
 Condition & Seeds 0/1/2 & Mean & IC 95\% CI & 2-way CI & Seeds 0/1/2 & Mean & IC 95\% CI & 2-way CI \\
@@ -17,7 +17,7 @@ ACT, 100 at $\sigma{=}2$ & 0 / 0 / 0 & \textbf{0.0} & [0.0, 0.0] & [0.0, 0.0] & 
 Flow matching, 100 clean (suppl.) & 25 / 29 / 19 & \textbf{24.3} & [17.7, 31.3] & [16.0, 33.3] & 17 / 14 / 11 & \textbf{14.0} & [9.3, 19.0] & [8.0, 20.3] \\
 \bottomrule
 \end{tabular}
-\end{adjustbox}
+}
 \caption{Suite A: task success (\%) of every trained student on the original 100 held-out initial conditions (ICs), corrected protocol v2. Left block: temporal ensembling (historical headline mode); right block: replanning every step. `Mean' averages the three training seeds. `IC 95\% CI' resamples the shared ICs with the trained models fixed; `2-way CI' also resamples the training seeds (crude with three seeds).}
 \label{tab:main}
 \end{table*}

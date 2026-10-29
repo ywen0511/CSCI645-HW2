@@ -1,7 +1,7 @@
 \begin{table*}[t]
 \centering
 \scriptsize
-\begin{adjustbox}{max width=\linewidth}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lrrrrrrrr}
 \toprule
 Contrast (B$-$A) & $\Delta$ (pp) & IC CI & 2-way CI & $p$ & $\Delta$ (pp) & IC CI & 2-way CI & $p$ \\
@@ -15,7 +15,7 @@ clean $\rightarrow$ $\sigma{=}2$ & -24.3 & [-31.0, -18.0] & [-33.0, -16.0] & $<1
 ACT $\rightarrow$ flow matching & +0.0 & [-8.7, 8.7] & [-11.7, 11.7] & $1$ & -21.3 & [-29.0, -14.0] & [-30.7, -12.0] & $<10^{-4}$ \\
 \bottomrule
 \end{tabular}
-\end{adjustbox}
+}
 \caption{Suite A paired contrasts in success (percentage points), first block temporal ensembling, second block replanning every step. Both arms are evaluated on the same 100 ICs, so the IC bootstrap resamples ICs jointly; $p$ is a sign-flip test of the per-IC difference of seed-averaged success (conditional on the trained models). Multiple contrasts are reported without correction.}
 \label{tab:contrasts}
 \end{table*}

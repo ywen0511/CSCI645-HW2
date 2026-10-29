@@ -1,7 +1,7 @@
 \begin{table}[t]
 \centering
 \scriptsize
-\begin{adjustbox}{max width=\linewidth}
+%
 \begin{tabular}{rrrrrrll}
 \toprule
 $\sigma$ & Eps. & Transitions & Mean len. & Term. & Succ. & Filter & Used by \\
@@ -14,7 +14,7 @@ $\sigma$ & Eps. & Transitions & Mean len. & Term. & Succ. & Filter & Used by \\
 2 & 100 & 14,390 & 143.9 & 10 & 0 & none & noise \\
 \bottomrule
 \end{tabular}
-\end{adjustbox}
+%
 \caption{Committed demonstration datasets (collected by the original teacher). The clean set keeps successful episodes only (the first 100 of 512 collected all succeeded, so the filter removed none); noisy sets keep the first 100 episodes including failures. $\sigma{=}0.1, 0.3$ were a preliminary sweep that barely degraded the teacher and are not used by any student.}
 \label{tab:data}
 \end{table}
